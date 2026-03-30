@@ -30,7 +30,7 @@ export function GestureBuilder({ value, onChange, disabled, lang }: Props) {
       {dirs.map((d, i) => (
         <select
           key={`${i}-${d}`}
-          className="w-[5.5rem] rounded-lg border border-slate-600 bg-slate-800 px-2 py-2 text-sm text-slate-100"
+          className="w-[5.5rem] rounded-lg border border-slate-300 bg-white px-2 py-2 text-sm text-slate-900 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
           value={d}
           disabled={disabled}
           onChange={(e) => {
@@ -49,7 +49,7 @@ export function GestureBuilder({ value, onChange, disabled, lang }: Props) {
       ))}
       <button
         type="button"
-        className="rounded-lg border border-slate-600 bg-slate-800 px-2 py-2 text-xs text-slate-100 hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+        className="rounded-lg border border-slate-300 bg-white px-2 py-2 text-xs text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
         disabled={disabled || dirs.length >= MAX_GESTURE_SEGMENTS}
         onClick={() => setDirs([...dirs, "U"])}
       >
@@ -57,13 +57,13 @@ export function GestureBuilder({ value, onChange, disabled, lang }: Props) {
       </button>
       <button
         type="button"
-        className="rounded-lg border border-slate-600 bg-slate-800 px-2 py-2 text-xs text-slate-100 hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+        className="rounded-lg border border-slate-300 bg-white px-2 py-2 text-xs text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
         disabled={disabled || dirs.length <= 1}
         onClick={() => setDirs(dirs.slice(0, -1) as Dir[])}
       >
         {t("gesture.removeSegment")}
       </button>
-      <span className="text-xs text-slate-500">
+      <span className="text-xs text-slate-600 dark:text-slate-400">
         {t("gesture.preview")}: {dirsToGesture(dirs)}
       </span>
     </div>
