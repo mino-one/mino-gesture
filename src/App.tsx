@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { getInitialLanguage, I18N_MESSAGES, type Language } from "./i18n";
+import { GestureBuilder } from "./components/GestureBuilder";
 
 type AppStatus = {
   enabled: boolean;
@@ -28,6 +30,7 @@ type ExecutionResult = {
   actionType?: string | null;
   success: boolean;
   message: string;
+  trigger?: string | null;
 };
 
 const GESTURE_PATTERN = /^[UDLR]+$/;
@@ -38,9 +41,7 @@ export function App() {
   const [rules, setRules] = useState<Rule[]>([]);
   const [name, setName] = useState("");
   const [gesture, setGesture] = useState("U");
-  const [scope, setScope] = useState("global");
   const [testGesture, setTestGesture] = useState("U");
-  const [testScope, setTestScope] = useState("global");
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -80,6 +81,20 @@ export function App() {
     localStorage.setItem("app-language", lang);
   }, [lang]);
 
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    void listen<ExecutionResult>("gesture-result", () => {
+      invoke<AppStatus>("get_status")
+        .then(setStatus)
+        .catch((e) => setError(String(e)));
+    }).then((fn) => {
+      unlisten = fn;
+    });
+    return () => {
+      unlisten?.();
+    };
+  }, []);
+
   const createRule = async () => {
     if (!name.trim()) {
       setError(t("errors.nameRequired"));
@@ -97,11 +112,11 @@ export function App() {
         payload: {
           name: name.trim(),
           gesture: normalizedGesture,
-          scope: scope.trim() || "global"
+          scope: "global"
         }
       });
       setName("");
-      setScope("global");
+      setGesture("U");
       await refresh();
     } catch (e) {
       setError(String(e));
@@ -164,7 +179,7 @@ export function App() {
       await invoke<ExecutionResult>("execute_gesture", {
         payload: {
           gesture: normalizedGesture,
-          scope: testScope.trim() || "global"
+          scope: "global"
         }
       });
       await refresh();
@@ -195,6 +210,7 @@ export function App() {
       <section className="rounded-xl border border-slate-700 bg-slate-900 p-4">
         <h2 className="text-lg font-medium">{t("permissions.title")}</h2>
         <p className="mt-2 text-slate-300">{t("permissions.desc")}</p>
+        <p className="mt-2 text-slate-400">{t("permissions.middleButton")}</p>
       </section>
 
       <section className="rounded-xl border border-slate-700 bg-slate-900 p-4">
@@ -234,54 +250,50 @@ export function App() {
           </button>
         </div>
         <div className="mt-3 grid gap-2 rounded-lg border border-slate-700 bg-slate-950 p-3">
-          <p className="text-xs font-medium text-slate-300">Gesture Debug</p>
-          <div className="flex gap-2">
-            <input
-              className="w-20 rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-slate-100"
+          <p className="text-xs font-medium text-slate-300">{t("debug.title")}</p>
+          <p className="text-xs text-slate-500">{t("rules.scopeDefaultNote")}</p>
+          <div className="flex flex-wrap items-end gap-2">
+            <GestureBuilder
               value={testGesture}
-              onChange={(e) => setTestGesture(e.target.value)}
-            />
-            <input
-              className="w-44 rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-slate-100"
-              value={testScope}
-              onChange={(e) => setTestScope(e.target.value)}
+              onChange={setTestGesture}
+              disabled={loading}
+              lang={lang}
             />
             <button
               className="rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-slate-100 hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
               onClick={executeGesture}
               disabled={loading}
             >
-              Execute
+              {t("debug.execute")}
             </button>
           </div>
           {status?.lastExecution && (
             <p className="text-xs text-slate-400">
-              {status.lastExecution.success ? "OK" : "ERR"} ·{" "}
-              {status.lastExecution.gesture} · {status.lastExecution.scope} ·{" "}
+              {t("runtime.lastHit")}: {status.lastExecution.success ? "OK" : "ERR"} ·{" "}
+              {t("runtime.recognizedGesture")}: {status.lastExecution.gesture || "—"} ·{" "}
+              {status.lastExecution.scope} ·{" "}
               {status.lastExecution.ruleName ?? "no-rule"} ·{" "}
-              {status.lastExecution.message}
+              {status.lastExecution.trigger ?? "—"} · {status.lastExecution.message}
             </p>
           )}
         </div>
       </section>
       <section className="rounded-xl border border-slate-700 bg-slate-900 p-4">
         <h2 className="text-lg font-medium">{t("rules.title")}</h2>
-        <div className="mt-3 flex gap-2">
+        <p className="mt-1 text-xs text-slate-400">{t("rules.scopeDefaultNote")}</p>
+        <p className="mt-1 text-xs text-slate-500">{t("gesture.matchHint")}</p>
+        <div className="mt-3 flex flex-wrap items-end gap-2">
           <input
-            className="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-400"
+            className="min-w-[8rem] flex-1 rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-400"
             placeholder={t("rules.namePlaceholder")}
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
-          <input
-            className="w-20 rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-slate-100"
+          <GestureBuilder
             value={gesture}
-            onChange={(e) => setGesture(e.target.value)}
-          />
-          <input
-            className="w-44 rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-slate-100"
-            value={scope}
-            onChange={(e) => setScope(e.target.value)}
+            onChange={setGesture}
+            disabled={loading}
+            lang={lang}
           />
           <button
             className="rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-slate-100 hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
@@ -307,20 +319,14 @@ export function App() {
                         patchRule(rule.id, { name: e.target.value })
                       }
                     />
-                    <input
-                      className="w-20 rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-slate-100"
-                      value={rule.gesture}
-                      onChange={(e) =>
-                        patchRule(rule.id, { gesture: e.target.value })
-                      }
-                    />
-                    <input
-                      className="w-44 rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-slate-100"
-                      value={rule.scope}
-                      onChange={(e) =>
-                        patchRule(rule.id, { scope: e.target.value })
-                      }
-                    />
+                    <div className="w-full shrink-0">
+                      <GestureBuilder
+                        value={rule.gesture}
+                        onChange={(g) => patchRule(rule.id, { gesture: g })}
+                        disabled={loading}
+                        lang={lang}
+                      />
+                    </div>
                   </div>
                   <div className="flex gap-2">
                     <button

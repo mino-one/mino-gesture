@@ -157,6 +157,33 @@ pnpm build
 pnpm tauri dev
 ```
 
+## Middle Button Gesture (current)
+
+Current real-time gesture listening is implemented for **middle mouse button only** on macOS:
+
+1. Hold middle button
+2. Move mouse to draw path
+3. Release middle button
+4. App recognizes gesture (`U/D/L/R` sequence), matches rules, and executes action
+
+### Permission requirement
+
+You must grant:
+
+- Accessibility
+- Input Monitoring
+
+Without these permissions, global mouse events may not be captured.
+
+### How to check what was recognized
+
+- In the app UI, check Runtime -> last result
+- It shows recognized gesture, scope, matched rule, trigger source, and execution message
+- Trigger source:
+  - `middle_button`: real-time middle-button gesture
+  - `manual`: debug panel execution
+  - `probe`: foundation probe path
+
 ## Status
 
 Milestone 1 foundation scaffold is in place.

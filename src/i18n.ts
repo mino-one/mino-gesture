@@ -9,6 +9,8 @@ export const I18N_MESSAGES: Record<Language, Messages> = {
     "permissions.title": "权限",
     "permissions.desc":
       "请在 macOS 设置 - 隐私与安全性中为应用开启辅助功能和输入监控权限。",
+    "permissions.middleButton":
+      "实时手势仅支持鼠标中键：按住中键拖动，松开时识别轨迹并匹配规则（需上述权限）。",
     "runtime.title": "运行状态",
     "runtime.enabled": "启用状态",
     "runtime.input": "输入模块",
@@ -16,6 +18,8 @@ export const I18N_MESSAGES: Record<Language, Messages> = {
     "runtime.hotkey": "快捷键动作",
     "runtime.config": "配置文件",
     "runtime.loading": "加载中...",
+    "runtime.lastHit": "最近一次",
+    "runtime.recognizedGesture": "识别手势",
     "actions.enable": "启用",
     "actions.disable": "禁用",
     "actions.refresh": "刷新",
@@ -32,7 +36,20 @@ export const I18N_MESSAGES: Record<Language, Messages> = {
     "rules.enable": "启用",
     "rules.disable": "禁用",
     "errors.nameRequired": "规则名称不能为空。",
-    "errors.gesturePattern": "手势只能包含 U、D、L、R。"
+    "errors.gesturePattern": "手势只能包含 U、D、L、R。",
+    "gesture.segment": "手势段",
+    "gesture.addSegment": "加一段",
+    "gesture.removeSegment": "删最后一段",
+    "gesture.preview": "预览",
+    "gesture.dir.U": "U 上",
+    "gesture.dir.D": "D 下",
+    "gesture.dir.L": "L 左",
+    "gesture.dir.R": "R 右",
+    "gesture.matchHint":
+      "相同判定：去掉首尾空格后转大写，与规则里存的手势字符串完全一致才算同一手势（如 UL 与 LU 不同）。",
+    "rules.scopeDefaultNote": "新建规则默认为全局有效（global）。",
+    "debug.title": "手势调试",
+    "debug.execute": "执行"
   },
   "en-US": {
     "header.subtitle": "Milestone 1 Foundation Console",
@@ -40,6 +57,8 @@ export const I18N_MESSAGES: Record<Language, Messages> = {
     "permissions.title": "Permissions",
     "permissions.desc":
       "Please enable Accessibility and Input Monitoring for this app in macOS Settings - Privacy & Security.",
+    "permissions.middleButton":
+      "Live gestures use the middle mouse button only: hold middle button and drag; on release the path is recognized and matched (requires the permissions above).",
     "runtime.title": "Runtime",
     "runtime.enabled": "Enabled",
     "runtime.input": "Input module",
@@ -47,6 +66,8 @@ export const I18N_MESSAGES: Record<Language, Messages> = {
     "runtime.hotkey": "Hotkey action",
     "runtime.config": "Config",
     "runtime.loading": "Loading...",
+    "runtime.lastHit": "Last result",
+    "runtime.recognizedGesture": "Recognized",
     "actions.enable": "Enable",
     "actions.disable": "Disable",
     "actions.refresh": "Refresh",
@@ -63,7 +84,20 @@ export const I18N_MESSAGES: Record<Language, Messages> = {
     "rules.enable": "Enable",
     "rules.disable": "Disable",
     "errors.nameRequired": "Rule name is required.",
-    "errors.gesturePattern": "Gesture must only contain U, D, L, R."
+    "errors.gesturePattern": "Gesture must only contain U, D, L, R.",
+    "gesture.segment": "Gesture segment",
+    "gesture.addSegment": "Add segment",
+    "gesture.removeSegment": "Remove last",
+    "gesture.preview": "Preview",
+    "gesture.dir.U": "U Up",
+    "gesture.dir.D": "D Down",
+    "gesture.dir.L": "L Left",
+    "gesture.dir.R": "R Right",
+    "gesture.matchHint":
+      "Sameness: trim, uppercase, then exact string match to the rule gesture (UL ≠ LU).",
+    "rules.scopeDefaultNote": "New rules default to global scope.",
+    "debug.title": "Gesture debug",
+    "debug.execute": "Execute"
   }
 };
 

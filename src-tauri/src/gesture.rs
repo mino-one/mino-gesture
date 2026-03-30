@@ -17,6 +17,18 @@ pub struct GestureRecognizer {
     threshold: f64,
 }
 
+pub fn directions_to_string(dirs: &[Direction]) -> String {
+    dirs
+        .iter()
+        .map(|d| match d {
+            Direction::U => 'U',
+            Direction::D => 'D',
+            Direction::L => 'L',
+            Direction::R => 'R',
+        })
+        .collect()
+}
+
 impl GestureRecognizer {
     pub fn new(threshold: f64) -> Self {
         Self { threshold }
