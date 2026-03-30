@@ -23,6 +23,7 @@ struct AppState {
     recognizer: GestureRecognizer,
     rules: RuleEngine,
     actions: ActionExecutor,
+    last_execution: Option<ExecutionResult>,
 }
 
 #[derive(Debug, Serialize)]
@@ -33,6 +34,7 @@ struct StatusResponse {
     recognizer_ready: bool,
     hotkey_ready: bool,
     config_path: String,
+    last_execution: Option<ExecutionResult>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -59,6 +61,26 @@ struct UpdateRuleRequest {
 #[serde(rename_all = "camelCase")]
 struct DeleteRuleRequest {
     id: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ExecutionResult {
+    matched: bool,
+    scope: String,
+    gesture: String,
+    rule_name: Option<String>,
+    action_type: Option<String>,
+    success: bool,
+    message: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ExecuteGestureRequest {
+    gesture: String,
+    #[serde(default = "default_scope")]
+    scope: String,
 }
 
 fn default_scope() -> String {
@@ -102,6 +124,7 @@ fn get_status(state: State<'_, Mutex<AppState>>) -> Result<StatusResponse, Strin
         recognizer_ready: guard.recognizer.threshold() > 0.0,
         hotkey_ready: true,
         config_path: guard.config.path().display().to_string(),
+        last_execution: guard.last_execution.clone(),
     })
 }
 
@@ -176,6 +199,57 @@ fn set_enabled(enabled: bool, state: State<'_, Mutex<AppState>>) -> Result<(), S
 }
 
 #[tauri::command]
+fn execute_gesture(
+    payload: ExecuteGestureRequest,
+    state: State<'_, Mutex<AppState>>,
+) -> Result<ExecutionResult, String> {
+    let mut guard = state.lock().map_err(|e| e.to_string())?;
+    let gesture = normalize_gesture(&payload.gesture);
+    validate_gesture(&gesture)?;
+    let scope = normalize_scope(&payload.scope);
+
+    let result = if let Some(rule) = guard
+        .rules
+        .match_rule(guard.config.rules(), &scope, &gesture)
+        .cloned()
+    {
+        match guard.actions.execute_action_type(&rule.action_type) {
+            Ok(_) => ExecutionResult {
+                matched: true,
+                scope,
+                gesture,
+                rule_name: Some(rule.name),
+                action_type: Some(rule.action_type),
+                success: true,
+                message: "action executed".to_string(),
+            },
+            Err(e) => ExecutionResult {
+                matched: true,
+                scope,
+                gesture,
+                rule_name: Some(rule.name),
+                action_type: Some(rule.action_type),
+                success: false,
+                message: e.to_string(),
+            },
+        }
+    } else {
+        ExecutionResult {
+            matched: false,
+            scope,
+            gesture,
+            rule_name: None,
+            action_type: None,
+            success: false,
+            message: "no matching rule".to_string(),
+        }
+    };
+
+    guard.last_execution = Some(result.clone());
+    Ok(result)
+}
+
+#[tauri::command]
 fn run_foundation_probe(state: State<'_, Mutex<AppState>>) -> Result<Vec<String>, String> {
     let mut guard = state.lock().map_err(|e| e.to_string())?;
     guard.input.start(Point { x: 100.0, y: 100.0 });
@@ -185,6 +259,19 @@ fn run_foundation_probe(state: State<'_, Mutex<AppState>>) -> Result<Vec<String>
     if guard.rules.matches_mission_control(&tokens) {
         let _ = guard.actions.execute(Action::HotkeyMissionControl);
     }
+    guard.last_execution = Some(ExecutionResult {
+        matched: true,
+        scope: "global".to_string(),
+        gesture: tokens
+            .iter()
+            .map(|t| format!("{t:?}"))
+            .collect::<Vec<String>>()
+            .join(""),
+        rule_name: Some("Foundation Probe".to_string()),
+        action_type: Some("hotkey".to_string()),
+        success: true,
+        message: "probe executed".to_string(),
+    });
     Ok(tokens.into_iter().map(|t| format!("{t:?}")).collect())
 }
 
@@ -202,6 +289,7 @@ pub fn run() {
                 recognizer: GestureRecognizer::new(5.0),
                 rules: RuleEngine::new(),
                 actions: ActionExecutor::new(),
+                last_execution: None,
             };
             app.manage(Mutex::new(state));
             tray::setup(app.handle())?;
@@ -214,6 +302,7 @@ pub fn run() {
             update_rule,
             delete_rule,
             set_enabled,
+            execute_gesture,
             run_foundation_probe
         ])
         .run(tauri::generate_context!())

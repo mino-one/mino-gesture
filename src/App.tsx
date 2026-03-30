@@ -8,6 +8,7 @@ type AppStatus = {
   recognizerReady: boolean;
   hotkeyReady: boolean;
   configPath: string;
+  lastExecution?: ExecutionResult | null;
 };
 
 type Rule = {
@@ -19,6 +20,16 @@ type Rule = {
   actionType: string;
 };
 
+type ExecutionResult = {
+  matched: boolean;
+  scope: string;
+  gesture: string;
+  ruleName?: string | null;
+  actionType?: string | null;
+  success: boolean;
+  message: string;
+};
+
 const GESTURE_PATTERN = /^[UDLR]+$/;
 
 export function App() {
@@ -28,6 +39,8 @@ export function App() {
   const [name, setName] = useState("");
   const [gesture, setGesture] = useState("U");
   const [scope, setScope] = useState("global");
+  const [testGesture, setTestGesture] = useState("U");
+  const [testScope, setTestScope] = useState("global");
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -139,6 +152,29 @@ export function App() {
     setRules((prev) => prev.map((r) => (r.id === id ? { ...r, ...partial } : r)));
   };
 
+  const executeGesture = async () => {
+    const normalizedGesture = testGesture.trim().toUpperCase();
+    if (!GESTURE_PATTERN.test(normalizedGesture)) {
+      setError(t("errors.gesturePattern"));
+      return;
+    }
+    try {
+      setLoading(true);
+      setError(null);
+      await invoke<ExecutionResult>("execute_gesture", {
+        payload: {
+          gesture: normalizedGesture,
+          scope: testScope.trim() || "global"
+        }
+      });
+      await refresh();
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <main className="mx-auto grid min-h-screen w-full max-w-3xl gap-4 bg-slate-950 px-6 py-6 text-slate-100">
       <header>
@@ -196,6 +232,36 @@ export function App() {
           >
             {t("actions.refresh")}
           </button>
+        </div>
+        <div className="mt-3 grid gap-2 rounded-lg border border-slate-700 bg-slate-950 p-3">
+          <p className="text-xs font-medium text-slate-300">Gesture Debug</p>
+          <div className="flex gap-2">
+            <input
+              className="w-20 rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-slate-100"
+              value={testGesture}
+              onChange={(e) => setTestGesture(e.target.value)}
+            />
+            <input
+              className="w-44 rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-slate-100"
+              value={testScope}
+              onChange={(e) => setTestScope(e.target.value)}
+            />
+            <button
+              className="rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-slate-100 hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+              onClick={executeGesture}
+              disabled={loading}
+            >
+              Execute
+            </button>
+          </div>
+          {status?.lastExecution && (
+            <p className="text-xs text-slate-400">
+              {status.lastExecution.success ? "OK" : "ERR"} ·{" "}
+              {status.lastExecution.gesture} · {status.lastExecution.scope} ·{" "}
+              {status.lastExecution.ruleName ?? "no-rule"} ·{" "}
+              {status.lastExecution.message}
+            </p>
+          )}
         </div>
       </section>
       <section className="rounded-xl border border-slate-700 bg-slate-900 p-4">

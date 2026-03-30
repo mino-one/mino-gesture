@@ -19,6 +19,13 @@ impl ActionExecutor {
         }
     }
 
+    pub fn execute_action_type(&self, action_type: &str) -> anyhow::Result<()> {
+        match action_type {
+            "hotkey" => self.execute(Action::HotkeyMissionControl),
+            _ => anyhow::bail!("unsupported action type: {action_type}"),
+        }
+    }
+
     fn run_mission_control(&self) -> anyhow::Result<()> {
         // For foundation milestone we keep a single concrete action path.
         let script = "tell application \"System Events\" to key code 126 using control down";
