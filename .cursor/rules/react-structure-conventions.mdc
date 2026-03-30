@@ -1,0 +1,14 @@
+---
+description: React 结构规范：组件、hooks、types 目录与命名约定
+globs: src/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# React Structure Conventions
+
+- 页面级组件放在 `src/pages`，通用组件放在 `src/components`，避免页面文件直接承载过多复用 UI。
+- 可复用状态逻辑放在 `src/hooks`，命名必须以 `use` 开头（如 `useRules`）。
+- 公共类型定义放在 `src/types` 或对应模块旁 `types.ts`，避免在页面中内联大段类型。
+- 平台调用与数据访问放在 `src/services` 或 `src/lib`，组件内只保留调用入口，不写底层细节。
+- 单组件文件超过 300 行时必须拆分：优先提取子组件，再提取 hooks 和工具函数。
+- 文件命名统一：组件 `PascalCase.tsx`，hooks `camelCase.ts` 且以 `use` 开头，工具模块 `camelCase.ts`。

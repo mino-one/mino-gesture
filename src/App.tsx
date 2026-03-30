@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { getInitialLanguage, I18N_MESSAGES, type Language } from "./i18n";
 
 type AppStatus = {
   enabled: boolean;
@@ -21,6 +22,7 @@ type Rule = {
 const GESTURE_PATTERN = /^[UDLR]+$/;
 
 export function App() {
+  const [lang, setLang] = useState<Language>(() => getInitialLanguage());
   const [status, setStatus] = useState<AppStatus | null>(null);
   const [rules, setRules] = useState<Rule[]>([]);
   const [name, setName] = useState("");
@@ -29,6 +31,7 @@ export function App() {
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const t = (key: string) => I18N_MESSAGES[lang][key] ?? key;
 
   const refreshRules = async () => {
     const nextRules = await invoke<Rule[]>("list_rules");
@@ -60,14 +63,18 @@ export function App() {
     refresh().catch((e) => setError(String(e)));
   }, []);
 
+  useEffect(() => {
+    localStorage.setItem("app-language", lang);
+  }, [lang]);
+
   const createRule = async () => {
     if (!name.trim()) {
-      setError("Rule name is required.");
+      setError(t("errors.nameRequired"));
       return;
     }
     const normalizedGesture = gesture.trim().toUpperCase();
     if (!GESTURE_PATTERN.test(normalizedGesture)) {
-      setError("Gesture must only contain U, D, L, R.");
+      setError(t("errors.gesturePattern"));
       return;
     }
     try {
@@ -93,7 +100,7 @@ export function App() {
   const updateRule = async (rule: Rule) => {
     const normalizedGesture = rule.gesture.trim().toUpperCase();
     if (!GESTURE_PATTERN.test(normalizedGesture)) {
-      setError("Gesture must only contain U, D, L, R.");
+      setError(t("errors.gesturePattern"));
       return;
     }
     try {
@@ -135,32 +142,37 @@ export function App() {
   return (
     <main className="mx-auto grid min-h-screen w-full max-w-3xl gap-4 bg-slate-950 px-6 py-6 text-slate-100">
       <header>
-        <h1 className="text-3xl font-semibold tracking-tight">mino-gesture</h1>
-        <p className="mt-1 text-sm text-slate-400">
-          Milestone 1 Foundation Console
-        </p>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h1 className="text-3xl font-semibold tracking-tight">mino-gesture</h1>
+            <p className="mt-1 text-sm text-slate-400">{t("header.subtitle")}</p>
+          </div>
+          <button
+            className="rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-xs text-slate-100 hover:bg-slate-700"
+            onClick={() => setLang((prev) => (prev === "zh-CN" ? "en-US" : "zh-CN"))}
+          >
+            {t("header.switchToEnglish")}
+          </button>
+        </div>
       </header>
 
       <section className="rounded-xl border border-slate-700 bg-slate-900 p-4">
-        <h2 className="text-lg font-medium">Permissions</h2>
-        <p className="mt-2 text-slate-300">
-          Please enable Accessibility and Input Monitoring for this app in
-          macOS Settings - Privacy & Security.
-        </p>
+        <h2 className="text-lg font-medium">{t("permissions.title")}</h2>
+        <p className="mt-2 text-slate-300">{t("permissions.desc")}</p>
       </section>
 
       <section className="rounded-xl border border-slate-700 bg-slate-900 p-4">
-        <h2 className="text-lg font-medium">Runtime</h2>
+        <h2 className="text-lg font-medium">{t("runtime.title")}</h2>
         {status ? (
           <ul className="mt-2 grid list-disc gap-1 pl-5 text-sm text-slate-300">
-            <li>Enabled: {String(status.enabled)}</li>
-            <li>Input module: {String(status.inputRunning)}</li>
-            <li>Gesture recognizer: {String(status.recognizerReady)}</li>
-            <li>Hotkey action: {String(status.hotkeyReady)}</li>
-            <li>Config: {status.configPath}</li>
+            <li>{t("runtime.enabled")}: {String(status.enabled)}</li>
+            <li>{t("runtime.input")}: {String(status.inputRunning)}</li>
+            <li>{t("runtime.recognizer")}: {String(status.recognizerReady)}</li>
+            <li>{t("runtime.hotkey")}: {String(status.hotkeyReady)}</li>
+            <li>{t("runtime.config")}: {status.configPath}</li>
           </ul>
         ) : (
-          <p className="mt-2 text-slate-300">Loading...</p>
+          <p className="mt-2 text-slate-300">{t("runtime.loading")}</p>
         )}
         <div className="mt-3 flex gap-2">
           <button
@@ -168,30 +180,30 @@ export function App() {
             onClick={() => setEnabled(true)}
             disabled={loading}
           >
-            Enable
+            {t("actions.enable")}
           </button>
           <button
             className="rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-slate-100 hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
             onClick={() => setEnabled(false)}
             disabled={loading}
           >
-            Disable
+            {t("actions.disable")}
           </button>
           <button
             className="rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-slate-100 hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
             onClick={() => refresh()}
             disabled={loading}
           >
-            Refresh
+            {t("actions.refresh")}
           </button>
         </div>
       </section>
       <section className="rounded-xl border border-slate-700 bg-slate-900 p-4">
-        <h2 className="text-lg font-medium">Rules</h2>
+        <h2 className="text-lg font-medium">{t("rules.title")}</h2>
         <div className="mt-3 flex gap-2">
           <input
             className="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-400"
-            placeholder="Rule name"
+            placeholder={t("rules.namePlaceholder")}
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
@@ -210,7 +222,7 @@ export function App() {
             onClick={createRule}
             disabled={loading}
           >
-            Add
+            {t("rules.add")}
           </button>
         </div>
         <ul className="mt-3 grid gap-2 text-sm text-slate-300">
@@ -250,14 +262,14 @@ export function App() {
                       onClick={() => updateRule(rule)}
                       disabled={loading}
                     >
-                      Save
+                      {t("rules.save")}
                     </button>
                     <button
                       className="rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-xs text-slate-100 hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
                       onClick={() => setEditingRuleId(null)}
                       disabled={loading}
                     >
-                      Cancel
+                      {t("rules.cancel")}
                     </button>
                   </div>
                 </div>
@@ -267,7 +279,7 @@ export function App() {
                     <span className="font-medium text-slate-100">{rule.name}</span>
                     <span className="ml-2 text-slate-400">
                       {rule.gesture} · {rule.scope} · {rule.actionType} ·{" "}
-                      {rule.enabled ? "enabled" : "disabled"}
+                      {rule.enabled ? t("rules.enabled") : t("rules.disabled")}
                     </span>
                   </div>
                   <div className="flex gap-2">
@@ -276,27 +288,27 @@ export function App() {
                       onClick={() => updateRule({ ...rule, enabled: !rule.enabled })}
                       disabled={loading}
                     >
-                      {rule.enabled ? "Disable" : "Enable"}
+                      {rule.enabled ? t("rules.disable") : t("rules.enable")}
                     </button>
                     <button
                       className="rounded-lg border border-slate-600 bg-slate-800 px-2 py-1 text-xs text-slate-100 hover:bg-slate-700"
                       onClick={() => setEditingRuleId(rule.id)}
                     >
-                      Edit
+                      {t("rules.edit")}
                     </button>
                     <button
                       className="rounded-lg border border-rose-800 bg-rose-950 px-2 py-1 text-xs text-rose-200 hover:bg-rose-900 disabled:cursor-not-allowed disabled:opacity-50"
                       onClick={() => removeRule(rule.id)}
                       disabled={loading}
                     >
-                      Delete
+                      {t("rules.delete")}
                     </button>
                   </div>
                 </div>
               )}
             </li>
           ))}
-          {rules.length === 0 && <li className="text-slate-400">No rules yet.</li>}
+          {rules.length === 0 && <li className="text-slate-400">{t("rules.empty")}</li>}
         </ul>
       </section>
       {error && <p className="text-sm text-rose-300">{error}</p>}
