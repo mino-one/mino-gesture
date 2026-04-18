@@ -190,11 +190,16 @@ function keyCodeToDisplay(keyCode: number): string {
 
 /** VS Code 风格：⌘⌥K 等，用于卡片与表单 */
 export function formatHotkeySnapshot(s: ActionHotkeySnapshot): string {
+  return hotkeySnapshotToKeyLabels(s).join(" ");
+}
+
+/** 与 `formatHotkeySnapshot` 相同顺序，用于键帽分列展示 */
+export function hotkeySnapshotToKeyLabels(s: ActionHotkeySnapshot): string[] {
   const parts: string[] = [];
   if (s.command) parts.push("⌘");
   if (s.shift) parts.push("⇧");
   if (s.option) parts.push("⌥");
   if (s.control) parts.push("⌃");
   parts.push(keyCodeToDisplay(s.keyCode));
-  return parts.join(" ");
+  return parts;
 }

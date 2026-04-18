@@ -1,6 +1,7 @@
 import type { SVGProps } from "react";
 import { parseGestureArrows } from "../gesture";
 import type { ActionConfig, RuleConfig } from "../types/app";
+import { KeycapRow } from "./HotkeyKeycaps";
 import { Button } from "./ui/button";
 import { Card, CardContent } from "./ui/card";
 import { Switch } from "./ui/switch";
@@ -30,7 +31,8 @@ export type GestureRuleCardProps = {
   rule: RuleConfig;
   action: ActionConfig | undefined;
   triggerLabel: string;
-  hotkeyText: string;
+  /** 已拆好的键位标签，与录制器键帽顺序一致；空数组表示无快捷键 */
+  hotkeyLabels: string[];
   busy: boolean;
   onToggleEnabled: (enabled: boolean) => void;
   onEdit: () => void;
@@ -41,7 +43,7 @@ export function GestureRuleCard({
   rule,
   action,
   triggerLabel,
-  hotkeyText,
+  hotkeyLabels,
   busy,
   onToggleEnabled,
   onEdit,
@@ -67,14 +69,20 @@ export function GestureRuleCard({
           </div>
           <div className="min-w-0 flex-1 space-y-1">
             <h3 className="line-clamp-2 text-base font-semibold leading-snug tracking-tight text-foreground">{title}</h3>
-            <p className="text-xs font-medium text-muted-foreground">{triggerLabel}</p>
+            <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs leading-relaxed text-muted-foreground">
+              <span className="font-medium text-muted-foreground">{triggerLabel}</span>
+              <span className="text-muted-foreground/50" aria-hidden>
+                ·
+              </span>
+              <span className="shrink-0 text-muted-foreground/85">Trigger</span>
+              {hotkeyLabels.length > 0 ? (
+                <KeycapRow labels={hotkeyLabels} className="min-w-0" />
+              ) : (
+                <span className="text-foreground/75">—</span>
+              )}
+            </p>
           </div>
         </div>
-
-        <p className="text-xs leading-relaxed text-muted-foreground">
-          <span className="text-muted-foreground/85">Sends </span>
-          <span className="font-mono text-[13px] text-foreground/90">{hotkeyText}</span>
-        </p>
 
         <div className="border-t border-border/70 pt-2.5 text-xs text-muted-foreground dark:border-border/60">
           <span className="font-medium text-foreground/90">{scopeLabel}</span>

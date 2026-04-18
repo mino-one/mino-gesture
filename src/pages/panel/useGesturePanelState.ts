@@ -32,7 +32,6 @@ export function useGesturePanelState({ routeSearch, onIntentHandled }: UseGestur
   const handledIntentRef = useRef<string>("");
   const [ruleFormOpen, setRuleFormOpen] = useState(false);
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
-  const [draftEnabled, setDraftEnabled] = useState(true);
 
   const [lastResult, setLastResult] = useState<GestureResult | null>(null);
   const [history, setHistory] = useState<TimedGestureResult[]>([]);
@@ -85,7 +84,6 @@ export function useGesturePanelState({ routeSearch, onIntentHandled }: UseGestur
       gesture: "U",
       actionHotkey: null,
     });
-    setDraftEnabled(true);
     setRuleFormOpen(true);
   }, []);
 
@@ -102,7 +100,6 @@ export function useGesturePanelState({ routeSearch, onIntentHandled }: UseGestur
         gesture: rule.gesture,
         actionHotkey: hotkey,
       });
-      setDraftEnabled(rule.enabled);
       setRuleFormOpen(true);
     },
     [actionById],
@@ -252,7 +249,7 @@ export function useGesturePanelState({ routeSearch, onIntentHandled }: UseGestur
         gesture: draft.gesture.toUpperCase(),
         actionType: INLINE_HOTKEY_ACTION_TYPE,
         actionHotkey: draft.actionHotkey,
-        enabled: draftEnabled,
+        enabled: base.enabled,
       });
       closeRuleForm();
       return;
@@ -262,7 +259,7 @@ export function useGesturePanelState({ routeSearch, onIntentHandled }: UseGestur
       return;
     }
     await createRule();
-  }, [editingRuleId, rules, draft, draftEnabled, saveRule, createRule, closeRuleForm]);
+  }, [editingRuleId, rules, draft, saveRule, createRule, closeRuleForm]);
 
   const resetRules = useCallback(async () => {
     setResettingRules(true);
@@ -302,8 +299,6 @@ export function useGesturePanelState({ routeSearch, onIntentHandled }: UseGestur
   return {
     ruleFormOpen,
     editingRuleId,
-    draftEnabled,
-    setDraftEnabled,
     openRuleFormCreate,
     openRuleFormEdit,
     closeRuleForm,

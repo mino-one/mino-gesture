@@ -1,14 +1,13 @@
-import { useCallback, useEffect, useState } from "react";
+import type { SVGProps } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ActionHotkeySnapshot } from "../types/app";
 import {
   buildHotkeySnapshot,
-  formatHotkeySnapshot,
   keyboardEventToHotkeySnapshot,
   keyboardEventToMainKeyCode,
 } from "../lib/macKeyboard";
 import { cn } from "../lib/utils";
-import { Button } from "./ui/button";
-import { Switch } from "./ui/switch";
+import { HotkeyKeycapSequence } from "./HotkeyKeycaps";
 
 type KeybindingRecorderProps = {
   value: ActionHotkeySnapshot | null;
@@ -16,7 +15,7 @@ type KeybindingRecorderProps = {
   disabled?: boolean;
 };
 
-type RecorderTab = "combo" | "system";
+type RecorderTab = "combo" | "manual";
 
 type ModState = Pick<ActionHotkeySnapshot, "control" | "option" | "shift" | "command">;
 
@@ -27,6 +26,26 @@ const emptyMods: ModState = {
   control: false,
 };
 
+function IconClear(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden {...props}>
+      <path d="M18 6 6 18" />
+      <path d="m6 6 12 12" />
+    </svg>
+  );
+}
+
+function captureFieldClass(active: boolean, disabled?: boolean) {
+  return cn(
+    "flex min-h-[34px] flex-1 items-center rounded-l-lg border border-r-0 px-2 py-1 text-[11px] outline-none transition-[border-color,box-shadow,background-color]",
+    active
+      ? "border-primary/55 bg-primary/[0.06] ring-2 ring-primary/30 ring-offset-0 dark:bg-primary/[0.08] dark:ring-primary/35"
+      : "border-border/80 bg-muted/25 dark:border-border/60 dark:bg-muted/20",
+    disabled && "cursor-not-allowed opacity-50",
+    !disabled && "cursor-text",
+  );
+}
+
 export function KeybindingRecorder({ value, onChange, disabled }: KeybindingRecorderProps) {
   const [tab, setTab] = useState<RecorderTab>("combo");
 
@@ -34,6 +53,12 @@ export function KeybindingRecorder({ value, onChange, disabled }: KeybindingReco
   const [recordingMain, setRecordingMain] = useState(false);
   const [mods, setMods] = useState<ModState>({ ...emptyMods });
   const [mainKeyCode, setMainKeyCode] = useState<number | null>(null);
+
+  const comboCaptureRef = useRef<HTMLDivElement>(null);
+  const mainKeyCaptureRef = useRef<HTMLDivElement>(null);
+
+  const [comboFocused, setComboFocused] = useState(false);
+  const [mainKeyFocused, setMainKeyFocused] = useState(false);
 
   useEffect(() => {
     if (value) {
@@ -64,6 +89,7 @@ export function KeybindingRecorder({ value, onChange, disabled }: KeybindingReco
 
       if (e.key === "Escape") {
         setRecordingCombo(false);
+        comboCaptureRef.current?.blur();
         return;
       }
 
@@ -79,7 +105,7 @@ export function KeybindingRecorder({ value, onChange, disabled }: KeybindingReco
   }, [recordingCombo, disabled, onChange, tab]);
 
   useEffect(() => {
-    if (!recordingMain || disabled || tab !== "system") return;
+    if (!recordingMain || disabled || tab !== "manual") return;
 
     const listenerOpts: AddEventListenerOptions = { capture: true, passive: false };
 
@@ -92,6 +118,7 @@ export function KeybindingRecorder({ value, onChange, disabled }: KeybindingReco
 
       if (e.key === "Escape") {
         setRecordingMain(false);
+        mainKeyCaptureRef.current?.blur();
         return;
       }
 
@@ -108,10 +135,10 @@ export function KeybindingRecorder({ value, onChange, disabled }: KeybindingReco
     return () => window.removeEventListener("keydown", onKeyDown, listenerOpts);
   }, [recordingMain, disabled, onChange, mods, tab]);
 
-  const setMod = useCallback(
-    (key: keyof ModState, checked: boolean) => {
+  const toggleMod = useCallback(
+    (key: keyof ModState) => {
       setMods((prev) => {
-        const next = { ...prev, [key]: checked };
+        const next = { ...prev, [key]: !prev[key] };
         if (mainKeyCode !== null) {
           onChange(buildHotkeySnapshot(mainKeyCode, next));
         }
@@ -121,38 +148,67 @@ export function KeybindingRecorder({ value, onChange, disabled }: KeybindingReco
     [mainKeyCode, onChange],
   );
 
-  const startRecordCombo = useCallback(() => {
-    if (disabled) return;
-    setRecordingCombo(true);
-  }, [disabled]);
-
-  const startRecordMain = useCallback(() => {
-    if (disabled) return;
-    setRecordingMain(true);
-  }, [disabled]);
+  const modifierButtonClass = (pressed: boolean) =>
+    cn(
+      "min-w-[2.35rem] rounded-md border px-1.5 py-1 text-center text-[11px] font-medium leading-tight transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background",
+      pressed
+        ? "border-primary/60 bg-primary/15 text-foreground shadow-sm dark:border-primary/50 dark:bg-primary/20"
+        : "border-border/80 bg-background text-muted-foreground hover:border-border hover:bg-muted/40 hover:text-foreground dark:border-border/60 dark:bg-background/80",
+    );
 
   const clearAll = useCallback(() => {
     onChange(null);
     setRecordingCombo(false);
     setRecordingMain(false);
+    queueMicrotask(() => {
+      if (comboCaptureRef.current && document.activeElement === comboCaptureRef.current) {
+        setRecordingCombo(true);
+      }
+      if (mainKeyCaptureRef.current && document.activeElement === mainKeyCaptureRef.current) {
+        setRecordingMain(true);
+      }
+    });
   }, [onChange]);
 
   const selectTab = useCallback((next: RecorderTab) => {
     setTab(next);
     setRecordingCombo(false);
     setRecordingMain(false);
+    setComboFocused(false);
+    setMainKeyFocused(false);
+  }, []);
+
+  const onComboFocus = useCallback(() => {
+    if (disabled) return;
+    setComboFocused(true);
+    setRecordingCombo(true);
+  }, [disabled]);
+
+  const onComboBlur = useCallback((e: React.FocusEvent<HTMLDivElement>) => {
+    if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+      setComboFocused(false);
+      setRecordingCombo(false);
+    }
+  }, []);
+
+  const onMainKeyFocus = useCallback(() => {
+    if (disabled) return;
+    setMainKeyFocused(true);
+    setRecordingMain(true);
+  }, [disabled]);
+
+  const onMainKeyBlur = useCallback((e: React.FocusEvent<HTMLDivElement>) => {
+    if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+      setMainKeyFocused(false);
+      setRecordingMain(false);
+    }
   }, []);
 
   const preview =
     mainKeyCode !== null ? buildHotkeySnapshot(mainKeyCode, mods) : null;
 
-  const sharedPreview = value ? (
-    <span className="font-mono text-[13px] tracking-tight text-foreground">
-      {formatHotkeySnapshot(value)}
-    </span>
-  ) : (
-    <span className="text-muted-foreground">未设置快捷键</span>
-  );
+  const comboActive = comboFocused || recordingCombo;
+  const mainKeyActive = mainKeyFocused || recordingMain;
 
   return (
     <div className="space-y-3">
@@ -178,16 +234,16 @@ export function KeybindingRecorder({ value, onChange, disabled }: KeybindingReco
         <button
           type="button"
           role="tab"
-          aria-selected={tab === "system"}
+          aria-selected={tab === "manual"}
           className={cn(
             "flex-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-            tab === "system"
+            tab === "manual"
               ? "bg-background text-foreground shadow-sm dark:bg-background/95"
               : "text-muted-foreground hover:text-foreground",
           )}
-          onClick={() => selectTab("system")}
+          onClick={() => selectTab("manual")}
         >
-          系统录入
+          手动录入
         </button>
       </div>
 
@@ -195,76 +251,100 @@ export function KeybindingRecorder({ value, onChange, disabled }: KeybindingReco
         <div role="tabpanel" className="space-y-2">
           <div
             className={cn(
-              "rounded-md border px-3 py-2.5 text-sm transition-colors",
-              recordingCombo
-                ? "border-primary bg-primary/5 ring-1 ring-ring"
-                : "border-border/80 bg-muted/20 dark:bg-muted/15",
+              "flex overflow-hidden rounded-lg border transition-[border-color,box-shadow]",
+              comboActive ? "border-primary/45 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.04)] dark:border-primary/40" : "border-border/80 dark:border-border/60",
               disabled && "opacity-50",
             )}
           >
-            {recordingCombo ? (
-              <span className="text-muted-foreground">请按下完整组合键…</span>
-            ) : (
-              sharedPreview
-            )}
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button type="button" size="sm" variant="secondary" disabled={disabled} onClick={startRecordCombo}>
-              {recordingCombo ? "等待按键…" : "录制组合键"}
-            </Button>
+            <div
+              ref={comboCaptureRef}
+              tabIndex={disabled ? -1 : 0}
+              role="group"
+              aria-label="录制组合键，聚焦后按键"
+              className={captureFieldClass(comboActive, disabled)}
+              onFocus={onComboFocus}
+              onBlur={onComboBlur}
+            >
+              {value ? (
+                <HotkeyKeycapSequence snapshot={value} />
+              ) : recordingCombo ? (
+                <span className="text-muted-foreground">按下完整组合键…</span>
+              ) : (
+                <span className="text-muted-foreground">聚焦后录制</span>
+              )}
+            </div>
             {value && (
-              <Button type="button" size="sm" variant="ghost" disabled={disabled} onClick={clearAll}>
-                清除
-              </Button>
+              <button
+                type="button"
+                tabIndex={-1}
+                disabled={disabled}
+                aria-label="清除快捷键"
+                className={cn(
+                  "flex shrink-0 items-center justify-center rounded-r-lg border border-l-0 px-2 transition-colors",
+                  comboActive
+                    ? "border-primary/45 bg-primary/[0.06] dark:bg-primary/[0.08]"
+                    : "border-border/80 bg-muted/25 dark:border-border/60 dark:bg-muted/20",
+                  !disabled && "text-muted-foreground hover:bg-destructive/10 hover:text-destructive",
+                  disabled && "cursor-not-allowed opacity-50",
+                )}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => clearAll()}
+              >
+                <IconClear className="h-3.5 w-3.5" />
+              </button>
             )}
           </div>
           <p className="text-[11px] leading-snug text-muted-foreground">
-            类似 VS Code：点「录制」后一次按下完整组合键（含修饰键）；仅支持已映射键位；Esc 取消本次录制。
+            聚焦输入框后一次按下完整组合键；仅支持已映射键位；Esc 取消并失焦。
           </p>
         </div>
       )}
 
-      {tab === "system" && (
+      {tab === "manual" && (
         <div role="tabpanel" className="space-y-3">
           <div>
-            <p className="mb-2 text-[11px] font-medium text-muted-foreground">修饰键</p>
-            <div className="flex flex-wrap gap-x-4 gap-y-2">
-              <label className="flex cursor-pointer items-center gap-2 text-sm text-foreground">
-                <Switch
-                  checked={mods.command}
-                  disabled={disabled}
-                  aria-label="Command (⌘)"
-                  onCheckedChange={(c) => setMod("command", c)}
-                />
-                <span className="tabular-nums">⌘ Command</span>
-              </label>
-              <label className="flex cursor-pointer items-center gap-2 text-sm text-foreground">
-                <Switch
-                  checked={mods.option}
-                  disabled={disabled}
-                  aria-label="Option (⌥)"
-                  onCheckedChange={(c) => setMod("option", c)}
-                />
-                <span className="tabular-nums">⌥ Option</span>
-              </label>
-              <label className="flex cursor-pointer items-center gap-2 text-sm text-foreground">
-                <Switch
-                  checked={mods.control}
-                  disabled={disabled}
-                  aria-label="Control (⌃)"
-                  onCheckedChange={(c) => setMod("control", c)}
-                />
-                <span className="tabular-nums">⌃ Control</span>
-              </label>
-              <label className="flex cursor-pointer items-center gap-2 text-sm text-foreground">
-                <Switch
-                  checked={mods.shift}
-                  disabled={disabled}
-                  aria-label="Shift (⇧)"
-                  onCheckedChange={(c) => setMod("shift", c)}
-                />
-                <span className="tabular-nums">⇧ Shift</span>
-              </label>
+            <p className="mb-2 text-[11px] font-medium text-muted-foreground">修饰键（点选填入，再点可取消）</p>
+            <div className="flex flex-wrap gap-1.5" role="group" aria-label="修饰键">
+              <button
+                type="button"
+                disabled={disabled}
+                aria-pressed={mods.command}
+                className={modifierButtonClass(mods.command)}
+                onClick={() => toggleMod("command")}
+              >
+                <span className="font-mono text-sm leading-none">⌘</span>
+                <span className="mt-px block text-[9px] font-normal leading-none opacity-80">Cmd</span>
+              </button>
+              <button
+                type="button"
+                disabled={disabled}
+                aria-pressed={mods.option}
+                className={modifierButtonClass(mods.option)}
+                onClick={() => toggleMod("option")}
+              >
+                <span className="font-mono text-sm leading-none">⌥</span>
+                <span className="mt-px block text-[9px] font-normal leading-none opacity-80">Opt</span>
+              </button>
+              <button
+                type="button"
+                disabled={disabled}
+                aria-pressed={mods.control}
+                className={modifierButtonClass(mods.control)}
+                onClick={() => toggleMod("control")}
+              >
+                <span className="font-mono text-sm leading-none">⌃</span>
+                <span className="mt-px block text-[9px] font-normal leading-none opacity-80">Ctrl</span>
+              </button>
+              <button
+                type="button"
+                disabled={disabled}
+                aria-pressed={mods.shift}
+                className={modifierButtonClass(mods.shift)}
+                onClick={() => toggleMod("shift")}
+              >
+                <span className="font-mono text-sm leading-none">⇧</span>
+                <span className="mt-px block text-[9px] font-normal leading-none opacity-80">Shift</span>
+              </button>
             </div>
           </div>
 
@@ -272,37 +352,53 @@ export function KeybindingRecorder({ value, onChange, disabled }: KeybindingReco
             <p className="mb-2 text-[11px] font-medium text-muted-foreground">主键</p>
             <div
               className={cn(
-                "rounded-md border px-3 py-2.5 text-sm transition-colors",
-                recordingMain
-                  ? "border-primary bg-primary/5 ring-1 ring-ring"
-                  : "border-border/80 bg-muted/20 dark:bg-muted/15",
+                "flex overflow-hidden rounded-lg border transition-[border-color,box-shadow]",
+                mainKeyActive ? "border-primary/45 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.04)] dark:border-primary/40" : "border-border/80 dark:border-border/60",
                 disabled && "opacity-50",
               )}
             >
-              {preview ? (
-                <span className="font-mono text-[13px] tracking-tight text-foreground">
-                  {formatHotkeySnapshot(preview)}
-                </span>
-              ) : (
-                <span className="text-muted-foreground">
-                  {recordingMain ? "请按下一个主键…" : "未设置主键"}
-                </span>
-              )}
-            </div>
-            <div className="mt-2 flex flex-wrap gap-2">
-              <Button type="button" size="sm" variant="secondary" disabled={disabled} onClick={startRecordMain}>
-                {recordingMain ? "等待按键…" : "录制主键"}
-              </Button>
+              <div
+                ref={mainKeyCaptureRef}
+                tabIndex={disabled ? -1 : 0}
+                role="group"
+                aria-label="录制主键，聚焦后按键"
+                className={captureFieldClass(mainKeyActive, disabled)}
+                onFocus={onMainKeyFocus}
+                onBlur={onMainKeyBlur}
+              >
+                {preview ? (
+                  <HotkeyKeycapSequence snapshot={preview} />
+                ) : recordingMain ? (
+                  <span className="text-muted-foreground">按下一个主键…</span>
+                ) : (
+                  <span className="text-muted-foreground">聚焦后录制</span>
+                )}
+              </div>
               {preview && (
-                <Button type="button" size="sm" variant="ghost" disabled={disabled} onClick={clearAll}>
-                  清除
-                </Button>
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  disabled={disabled}
+                  aria-label="清除主键与快捷键"
+                  className={cn(
+                    "flex shrink-0 items-center justify-center rounded-r-lg border border-l-0 px-2 transition-colors",
+                    mainKeyActive
+                      ? "border-primary/45 bg-primary/[0.06] dark:bg-primary/[0.08]"
+                      : "border-border/80 bg-muted/25 dark:border-border/60 dark:bg-muted/20",
+                    !disabled && "text-muted-foreground hover:bg-destructive/10 hover:text-destructive",
+                    disabled && "cursor-not-allowed opacity-50",
+                  )}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => clearAll()}
+                >
+                  <IconClear className="h-3.5 w-3.5" />
+                </button>
               )}
             </div>
           </div>
 
           <p className="text-[11px] leading-snug text-muted-foreground">
-            当组合键一键录制被系统或浏览器拦截时使用：先勾选修饰键，再录主键；主键只认物理键位，修饰以开关为准；Esc 取消本次主键录制。
+            先点选需要的修饰键，再聚焦主键区域按下一个普通键完成；仅支持已映射键位；Esc 取消主键录制并失焦。
           </p>
         </div>
       )}

@@ -6,7 +6,7 @@ import {
   formatGestureTriggerLabelZh,
   formatHotkey,
 } from "../../gesture";
-import { formatHotkeySnapshot } from "../../lib/macKeyboard";
+import { hotkeySnapshotToKeyLabels } from "../../lib/macKeyboard";
 import type { MouseButtonValue } from "../../types/app";
 import { GestureRuleCard } from "../../components/GestureRuleCard";
 import { KeybindingRecorder } from "../../components/KeybindingRecorder";
@@ -16,7 +16,6 @@ import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
 import { Select } from "../../components/ui/select";
-import { Switch } from "../../components/ui/switch";
 import { useGesturePanelState } from "./useGesturePanelState";
 
 type PanelPageProps = {
@@ -28,8 +27,6 @@ export function PanelPage({ routeSearch, onIntentHandled }: PanelPageProps) {
   const {
     ruleFormOpen,
     editingRuleId,
-    draftEnabled,
-    setDraftEnabled,
     openRuleFormCreate,
     openRuleFormEdit,
     closeRuleForm,
@@ -140,12 +137,6 @@ export function PanelPage({ routeSearch, onIntentHandled }: PanelPageProps) {
                     />
                   </div>
                 </div>
-                {editingRuleId && (
-                  <div className="flex items-center justify-between rounded-lg border border-border/60 bg-muted/30 px-3 py-2 dark:border-border/50 dark:bg-muted/20">
-                    <span className="text-sm text-muted-foreground">启用</span>
-                    <Switch checked={draftEnabled} onCheckedChange={setDraftEnabled} aria-label="启用规则" />
-                  </div>
-                )}
                 <div className="flex justify-end gap-2">
                   <Button variant="outline" onClick={() => closeRuleForm()} disabled={formBusy}>
                     Cancel
@@ -172,11 +163,13 @@ export function PanelPage({ routeSearch, onIntentHandled }: PanelPageProps) {
               {filteredRules.map((rule) => {
                 const action = rule.actionHotkey ? undefined : actionById[rule.actionType];
                 const triggerLabel = formatGestureTriggerLabel(rule.gesture);
-                const hotkeyText = rule.actionHotkey
-                  ? formatHotkeySnapshot(rule.actionHotkey)
+                const hotkeyLabels = rule.actionHotkey
+                  ? hotkeySnapshotToKeyLabels(rule.actionHotkey)
                   : action
                     ? formatHotkey(action)
-                    : "—";
+                        .split(/\s+\+\s+/)
+                        .map((s) => s.trim())
+                    : [];
                 const busy = savingRuleId === rule.id;
                 return (
                   <GestureRuleCard
@@ -184,7 +177,7 @@ export function PanelPage({ routeSearch, onIntentHandled }: PanelPageProps) {
                     rule={rule}
                     action={action}
                     triggerLabel={triggerLabel}
-                    hotkeyText={hotkeyText}
+                    hotkeyLabels={hotkeyLabels}
                     busy={busy}
                     onToggleEnabled={(enabled) => void saveRule({ ...rule, enabled })}
                     onEdit={() => openRuleFormEdit(rule)}
