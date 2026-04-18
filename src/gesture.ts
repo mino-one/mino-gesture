@@ -25,26 +25,68 @@ const GESTURE_DIRECTION_LABEL: Record<string, string> = {
   DR: "Swipe Down-Right",
 };
 
-/**
- * 将手势编码转为可读触发说明，多段用「 → 」连接。
- */
-export function formatGestureTriggerLabel(gesture: string): string {
+/** 表单下拉用中文短标签，与 Button 等控件语言一致 */
+const GESTURE_DIRECTION_LABEL_ZH: Record<string, string> = {
+  U: "上滑",
+  D: "下滑",
+  L: "左滑",
+  R: "右滑",
+  UL: "左上",
+  UR: "右上",
+  DL: "左下",
+  DR: "右下",
+};
+
+/** 单段编码（U / UL …）对应的英文说明 */
+export function gestureSegmentLabel(segment: string): string {
+  const g = segment.toUpperCase();
+  return GESTURE_DIRECTION_LABEL[g] ?? segment;
+}
+
+/** 下拉项：方向箭头 + 中文说明 + 存储用编码，避免仅显示 U/D/L */
+export function formatGestureSelectOption(segment: string): string {
+  const g = segment.toUpperCase();
+  const arrow = DIRECTION_ARROW[g] ?? "";
+  const label = GESTURE_DIRECTION_LABEL_ZH[g] ?? GESTURE_DIRECTION_LABEL[g] ?? segment;
+  return `${arrow} ${label} · ${g}`;
+}
+
+function buildGestureReadableParts(
+  gesture: string,
+  labelMap: Record<string, string>,
+): string[] {
   const g = gesture.toUpperCase();
   const parts: string[] = [];
   let i = 0;
   while (i < g.length) {
     const two = g.slice(i, i + 2);
-    if (GESTURE_DIRECTION_LABEL[two]) {
-      parts.push(GESTURE_DIRECTION_LABEL[two]);
+    if (labelMap[two]) {
+      parts.push(labelMap[two]);
       i += 2;
-    } else if (GESTURE_DIRECTION_LABEL[g[i]]) {
-      parts.push(GESTURE_DIRECTION_LABEL[g[i]]);
+    } else if (labelMap[g[i]]) {
+      parts.push(labelMap[g[i]]);
       i += 1;
     } else {
       parts.push(g[i]);
       i += 1;
     }
   }
+  return parts;
+}
+
+/**
+ * 将手势编码转为可读触发说明，多段用「 → 」连接。
+ */
+export function formatGestureTriggerLabel(gesture: string): string {
+  const parts = buildGestureReadableParts(gesture, GESTURE_DIRECTION_LABEL);
+  if (parts.length === 0) return gesture;
+  if (parts.length === 1) return parts[0];
+  return parts.join(" → ");
+}
+
+/** 中文触发说明，用于表单辅助文案 */
+export function formatGestureTriggerLabelZh(gesture: string): string {
+  const parts = buildGestureReadableParts(gesture, GESTURE_DIRECTION_LABEL_ZH);
   if (parts.length === 0) return gesture;
   if (parts.length === 1) return parts[0];
   return parts.join(" → ");

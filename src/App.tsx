@@ -33,5 +33,10 @@ export function App() {
     );
   }
 
-  return <PanelPage routeSearch={routeState.search} onIntentHandled={handleIntentHandled} />;
+  return (
+    <PanelPage
+      routeSearch={routeState.search}
+      onIntentHandled={handleIntentHandled}
+    />
+  );
 }

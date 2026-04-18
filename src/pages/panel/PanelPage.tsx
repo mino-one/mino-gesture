@@ -1,4 +1,11 @@
-import { BUTTON_OPTIONS, GESTURE_OPTIONS, formatGestureTriggerLabel, formatHotkey } from "../../gesture";
+import {
+  BUTTON_OPTIONS,
+  formatGestureSelectOption,
+  GESTURE_OPTIONS,
+  formatGestureTriggerLabel,
+  formatGestureTriggerLabelZh,
+  formatHotkey,
+} from "../../gesture";
 import type { MouseButtonValue } from "../../types/app";
 import { GestureRuleCard } from "../../components/GestureRuleCard";
 import { ResultSection } from "../../components/ResultSection";
@@ -110,14 +117,18 @@ export function PanelPage({ routeSearch, onIntentHandled }: PanelPageProps) {
                     </Select>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-xs font-medium text-muted-foreground">Gesture</p>
-                    <Select value={draft.gesture} onChange={(e) => setDraft((prev) => ({ ...prev, gesture: e.target.value }))}>
+                    <p className="text-xs font-medium text-muted-foreground">手势</p>
+                    <Select
+                      value={draft.gesture.toUpperCase()}
+                      onChange={(e) => setDraft((prev) => ({ ...prev, gesture: e.target.value.toUpperCase() }))}
+                    >
                       {GESTURE_OPTIONS.map((g) => (
                         <option key={g} value={g}>
-                          {g}
+                          {formatGestureSelectOption(g)}
                         </option>
                       ))}
                     </Select>
+                    <p className="text-[11px] leading-snug text-muted-foreground">{formatGestureTriggerLabelZh(draft.gesture)}</p>
                   </div>
                   <div className="space-y-1">
                     <p className="text-xs font-medium text-muted-foreground">Action</p>
