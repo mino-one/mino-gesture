@@ -333,6 +333,8 @@ fn process_gesture(
         result: ExecutionResult,
         /// action_type to execute after releasing the lock (None = no-op).
         pending_action: Option<String>,
+        /// 规则内联快捷键，优先于 pending_action。
+        pending_hotkey: Option<crate::config::ActionHotkeySnapshot>,
         action_executor: crate::domain::actions::ActionExecutor,
     }
 
@@ -359,6 +361,7 @@ fn process_gesture(
                         trigger: Some("middle_button".to_string()),
                     },
                     pending_action: None,
+                    pending_hotkey: None,
                     action_executor: guard.actions.clone(),
                 }
             } else {
@@ -381,8 +384,15 @@ fn process_gesture(
                             button = %button,
                             "pointer-button gesture matched"
                         );
+                        let pending_hotkey = rule.action_hotkey.clone();
+                        let pending_action = if pending_hotkey.is_some() {
+                            None
+                        } else {
+                            Some(rule.action_type.clone())
+                        };
                         MatchOutcome {
-                            pending_action: Some(rule.action_type.clone()),
+                            pending_action,
+                            pending_hotkey,
                             action_executor: action_executor.clone(),
                             result: ExecutionResult {
                                 matched: true,
@@ -405,6 +415,7 @@ fn process_gesture(
                         );
                         MatchOutcome {
                             pending_action: None,
+                            pending_hotkey: None,
                             action_executor,
                             result: ExecutionResult {
                                 matched: false,
@@ -436,7 +447,11 @@ fn process_gesture(
 
     // Phase 3: execute the action (potentially slow osascript call).
     // Runs in this background thread — the CGEventTap callback already returned.
-    if let Some(action_type) = outcome.pending_action {
+    if let Some(ref hk) = outcome.pending_hotkey {
+        if let Err(e) = outcome.action_executor.execute_hotkey_snapshot(hk) {
+            tracing::warn!("inline hotkey execution failed: {}", e);
+        }
+    } else if let Some(action_type) = outcome.pending_action {
         if let Err(e) = outcome.action_executor.execute_action_type(&action_type) {
             tracing::warn!("action execution failed ({}): {}", action_type, e);
         }

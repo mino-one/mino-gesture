@@ -1,6 +1,6 @@
 //! Tauri `invoke`：入参/出参与命令实现（薄编排，逻辑见 `core` / `domain` / `config`）。
 
-use crate::config::{ActionConfig, RuleConfig};
+use crate::config::{ActionConfig, ActionHotkeySnapshot, RuleConfig};
 use crate::core::execution::{
     apply_gesture_match, normalize_button, normalize_gesture, normalize_scope, validate_button,
     validate_gesture,
@@ -34,6 +34,8 @@ pub struct CreateRuleRequest {
     #[serde(default = "default_scope")]
     scope: String,
     action_type: Option<String>,
+    #[serde(default)]
+    action_hotkey: Option<ActionHotkeySnapshot>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -46,6 +48,8 @@ pub struct UpdateRuleRequest {
     button: String,
     gesture: String,
     action_type: String,
+    #[serde(default)]
+    action_hotkey: Option<ActionHotkeySnapshot>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -108,14 +112,19 @@ pub fn create_rule(
     let button = normalize_button(&payload.button);
     validate_button(&button)?;
 
-    let default_action_type = guard
-        .config
-        .value()
-        .actions
-        .first()
-        .map(|a| a.id.clone())
-        .unwrap_or_else(|| "hotkey".to_string());
-    let action_type = payload.action_type.unwrap_or(default_action_type);
+    let (action_type, action_hotkey) = if let Some(hk) = payload.action_hotkey {
+        ("inline_hotkey".to_string(), Some(hk))
+    } else {
+        let default_action_type = guard
+            .config
+            .value()
+            .actions
+            .first()
+            .map(|a| a.id.clone())
+            .unwrap_or_else(|| "hotkey".to_string());
+        let action_type = payload.action_type.unwrap_or(default_action_type);
+        (action_type, None)
+    };
 
     let timestamp = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -129,6 +138,7 @@ pub fn create_rule(
         button,
         gesture,
         action_type,
+        action_hotkey,
     };
     guard.config.push_rule(rule.clone());
     guard.config.save().map_err(|e| e.to_string())?;
@@ -153,6 +163,7 @@ pub fn update_rule(
         button,
         gesture,
         action_type: payload.action_type,
+        action_hotkey: payload.action_hotkey,
     };
     if !guard.config.update_rule(rule.clone()) {
         return Err("rule not found".to_string());

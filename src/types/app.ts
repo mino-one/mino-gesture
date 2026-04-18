@@ -38,6 +38,18 @@ export type ActionConfig = {
   command: boolean;
 };
 
+/** 与后端 `ActionHotkeySnapshot` 一致，用于规则内联快捷键 */
+export type ActionHotkeySnapshot = {
+  keyCode: number;
+  control: boolean;
+  option: boolean;
+  shift: boolean;
+  command: boolean;
+};
+
+/** 使用内联快捷键时 `actionType` 占位，实际执行走 `actionHotkey` */
+export const INLINE_HOTKEY_ACTION_TYPE = "inline_hotkey";
+
 export type RuleConfig = {
   id: string;
   name: string;
@@ -46,15 +58,20 @@ export type RuleConfig = {
   button: MouseButtonValue;
   gesture: string;
   actionType: string;
+  actionHotkey?: ActionHotkeySnapshot | null;
 };
 
 export type ViewRoute = "home" | "panel";
 
 export type TimedGestureResult = GestureResult & { at: number };
 
+export type ActionMode = "preset" | "hotkey";
+
 export type CreateRuleDraft = {
   name: string;
   button: MouseButtonValue;
   gesture: string;
   actionType: string;
+  actionHotkey: ActionHotkeySnapshot | null;
+  actionMode: ActionMode;
 };

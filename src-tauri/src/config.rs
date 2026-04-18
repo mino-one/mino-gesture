@@ -67,6 +67,7 @@ fn builtin_rules() -> Vec<RuleConfig> {
             button: "middle".to_string(),
             gesture: "U".to_string(),
             action_type: "hotkey_mission_control".to_string(),
+            action_hotkey: None,
         },
         RuleConfig {
             id: "builtin-switch-left".to_string(),
@@ -76,6 +77,7 @@ fn builtin_rules() -> Vec<RuleConfig> {
             button: "middle".to_string(),
             gesture: "L".to_string(),
             action_type: "hotkey_switch_left".to_string(),
+            action_hotkey: None,
         },
         RuleConfig {
             id: "builtin-switch-right".to_string(),
@@ -85,6 +87,7 @@ fn builtin_rules() -> Vec<RuleConfig> {
             button: "middle".to_string(),
             gesture: "R".to_string(),
             action_type: "hotkey_switch_right".to_string(),
+            action_hotkey: None,
         },
         RuleConfig {
             id: "builtin-browser-back".to_string(),
@@ -94,6 +97,7 @@ fn builtin_rules() -> Vec<RuleConfig> {
             button: "right".to_string(),
             gesture: "L".to_string(),
             action_type: "hotkey_browser_back".to_string(),
+            action_hotkey: None,
         },
         RuleConfig {
             id: "builtin-browser-forward".to_string(),
@@ -103,6 +107,7 @@ fn builtin_rules() -> Vec<RuleConfig> {
             button: "right".to_string(),
             gesture: "R".to_string(),
             action_type: "hotkey_browser_forward".to_string(),
+            action_hotkey: None,
         },
     ]
 }
@@ -156,6 +161,21 @@ pub struct ActionConfig {
     pub command: bool,
 }
 
+/// 与 `ActionConfig` 热键字段一致，用于规则内联快捷键（不依赖预设动作 id）。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ActionHotkeySnapshot {
+    pub key_code: u16,
+    #[serde(default)]
+    pub control: bool,
+    #[serde(default)]
+    pub option: bool,
+    #[serde(default)]
+    pub shift: bool,
+    #[serde(default)]
+    pub command: bool,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RuleConfig {
@@ -167,6 +187,8 @@ pub struct RuleConfig {
     pub button: String,
     pub gesture: String,
     pub action_type: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub action_hotkey: Option<ActionHotkeySnapshot>,
 }
 
 fn default_rule_button() -> String {

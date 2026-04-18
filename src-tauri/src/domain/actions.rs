@@ -1,4 +1,4 @@
-use crate::config::ActionConfig;
+use crate::config::{ActionConfig, ActionHotkeySnapshot};
 use std::collections::HashMap;
 use std::process::Command;
 use std::sync::Arc;
@@ -41,6 +41,21 @@ impl ActionExecutor {
             "hotkey" => osascript_hotkey(action),
             _ => anyhow::bail!("unsupported action kind: {}", action.kind),
         }
+    }
+
+    /// 执行规则内联快捷键（不查预设动作表）。
+    pub fn execute_hotkey_snapshot(&self, hk: &ActionHotkeySnapshot) -> anyhow::Result<()> {
+        let action = ActionConfig {
+            id: "inline".to_string(),
+            name: String::new(),
+            kind: "hotkey".to_string(),
+            key_code: hk.key_code,
+            control: hk.control,
+            option: hk.option,
+            shift: hk.shift,
+            command: hk.command,
+        };
+        osascript_hotkey(&action)
     }
 }
 

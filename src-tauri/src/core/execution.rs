@@ -54,7 +54,12 @@ pub(crate) fn apply_gesture_match(
         .match_rule(guard.config.rules(), &scope, &button, &gesture)
         .cloned()
     {
-        match guard.actions.execute_action_type(&rule.action_type) {
+        let exec = if let Some(ref hk) = rule.action_hotkey {
+            guard.actions.execute_hotkey_snapshot(hk)
+        } else {
+            guard.actions.execute_action_type(&rule.action_type)
+        };
+        match exec {
             Ok(_) => ExecutionResult {
                 matched: true,
                 scope,

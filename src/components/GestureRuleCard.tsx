@@ -51,7 +51,8 @@ export function GestureRuleCard({
   const arrows = parseGestureArrows(rule.gesture).join("");
   const stateHint = rule.enabled ? "" : " (disabled)";
   const scopeLabel = rule.scope === "global" ? "System" : rule.scope;
-  const modeLabel = action?.kind === "hotkey" ? "Automated" : (action?.kind ?? "—");
+  const modeLabel =
+    rule.actionHotkey != null ? "快捷键" : action?.kind === "hotkey" ? "Automated" : (action?.kind ?? "—");
 
   return (
     <Card
