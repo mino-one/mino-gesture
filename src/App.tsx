@@ -1,14 +1,27 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { BUTTON_OPTIONS, GESTURE_OPTIONS, parseGestureArrows } from "./gesture";
+import { BUTTON_OPTIONS, GESTURE_OPTIONS, formatHotkey, parseGestureArrows } from "./gesture";
 import { ResultSection } from "./components/ResultSection";
 import { RuleSection } from "./components/RuleSection";
 import { ScreenMap } from "./components/ScreenMap";
 import type { ActionConfig, GestureResult, MouseButtonValue, RuleConfig, ScreenInfo, TrailStartPayload } from "./types/app";
+import { Button } from "./components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card";
+import { Badge } from "./components/ui/badge";
+import { Input } from "./components/ui/input";
+import { Select } from "./components/ui/select";
+import { Switch } from "./components/ui/switch";
 
 type ViewRoute = "home" | "panel";
 type TimedGestureResult = GestureResult & { at: number };
+
+type CreateRuleDraft = {
+  name: string;
+  button: MouseButtonValue;
+  gesture: string;
+  actionType: string;
+};
 
 function readRouteState(): { route: ViewRoute; search: string } {
   if (typeof window === "undefined") return { route: "home", search: "" };
@@ -21,14 +34,11 @@ function readRouteState(): { route: ViewRoute; search: string } {
 export function App() {
   const [routeState, setRouteState] = useState(readRouteState);
   const route = routeState.route;
+
   const [isListening, setIsListening] = useState(false);
   const handledIntentRef = useRef<string>("");
   const [advancedView, setAdvancedView] = useState(false);
-  const [showCreatePanel, setShowCreatePanel] = useState(false);
-  const [draftName, setDraftName] = useState("新规则");
-  const [draftButton, setDraftButton] = useState<MouseButtonValue>("middle");
-  const [draftGesture, setDraftGesture] = useState("U");
-  const [draftActionId, setDraftActionId] = useState("");
+  const [showCreatePopover, setShowCreatePopover] = useState(false);
 
   const [lastResult, setLastResult] = useState<GestureResult | null>(null);
   const [history, setHistory] = useState<TimedGestureResult[]>([]);
@@ -43,15 +53,24 @@ export function App() {
   const [creatingRule, setCreatingRule] = useState(false);
   const [resettingRules, setResettingRules] = useState(false);
 
+  const [activeTab, setActiveTab] = useState<"all" | "navigation" | "apps" | "scripts">("all");
+  const [draft, setDraft] = useState<CreateRuleDraft>({
+    name: "新规则",
+    button: "middle",
+    gesture: "U",
+    actionType: "",
+  });
+
+  const shouldAutoCreateRule = useMemo(
+    () => new URLSearchParams(routeState.search).get("intent") === "create",
+    [routeState.search],
+  );
+
   const actionById = useMemo(() => {
     return Object.fromEntries(actions.map((a) => [a.id, a]));
   }, [actions]);
 
-  const shouldAutoCreateRule = useMemo(() => {
-    return new URLSearchParams(routeState.search).get("intent") === "create";
-  }, [routeState.search]);
-
-  const usageByRuleId = useMemo(() => {
+  const usageByActionId = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const item of history) {
       if (!item.actionType) continue;
@@ -75,17 +94,13 @@ export function App() {
       ]);
       setRules(nextRules);
       setActions(nextActions);
+      setDraft((prev) => ({ ...prev, actionType: prev.actionType || nextActions[0]?.id || "" }));
     } catch (err) {
       setRulesError(String(err));
     } finally {
       setRulesLoading(false);
     }
   };
-
-  useEffect(() => {
-    if (actions.length === 0) return;
-    setDraftActionId((prev) => (prev ? prev : actions[0].id));
-  }, [actions]);
 
   useEffect(() => {
     const onPopState = () => setRouteState(readRouteState());
@@ -165,45 +180,37 @@ export function App() {
     }
   };
 
-  const createRule = async (params?: {
-    name?: string;
-    button?: MouseButtonValue;
-    gesture?: string;
-    actionType?: string;
-  }) => {
+  const createRule = async (payload?: Partial<CreateRuleDraft>) => {
     if (actions.length === 0) {
       setRulesError("当前没有可用操作，请先检查配置。");
       return;
     }
-    const actionType = params?.actionType ?? (draftActionId || actions[0].id);
+    const finalPayload: CreateRuleDraft = {
+      name: payload?.name?.trim() || draft.name || "新规则",
+      button: payload?.button ?? draft.button,
+      gesture: (payload?.gesture ?? draft.gesture).toUpperCase(),
+      actionType: payload?.actionType ?? (draft.actionType || actions[0].id),
+    };
+
     setCreatingRule(true);
     setRulesError(null);
     try {
       const created = await invoke<RuleConfig>("create_rule", {
         payload: {
-          name: params?.name?.trim() || "新规则",
+          name: finalPayload.name,
           scope: "global",
-          button: params?.button ?? "middle",
-          gesture: (params?.gesture ?? "U").toUpperCase(),
-          actionType,
+          button: finalPayload.button,
+          gesture: finalPayload.gesture,
+          actionType: finalPayload.actionType,
         },
       });
       setRules((prev) => [created, ...prev]);
+      setShowCreatePopover(false);
     } catch (err) {
       setRulesError(String(err));
     } finally {
       setCreatingRule(false);
     }
-  };
-
-  const handleCreateFromPanel = async () => {
-    await createRule({
-      name: draftName,
-      button: draftButton,
-      gesture: draftGesture,
-      actionType: draftActionId,
-    });
-    setShowCreatePanel(false);
   };
 
   const resetRules = async () => {
@@ -234,177 +241,185 @@ export function App() {
     });
   }, [route, shouldAutoCreateRule, rulesLoading, creatingRule, actions.length, routeState.search]);
 
-  const formatShortcut = (action: ActionConfig | undefined, fallbackGesture: string) => {
-    if (!action) return fallbackGesture;
-    const parts: string[] = [];
-    if (action.control) parts.push("Ctrl");
-    if (action.option) parts.push("Alt");
-    if (action.shift) parts.push("Shift");
-    if (action.command) parts.push("Cmd");
-    if (action.keyCode >= 65 && action.keyCode <= 90) {
-      parts.push(String.fromCharCode(action.keyCode));
-    } else if (action.keyCode >= 48 && action.keyCode <= 57) {
-      parts.push(String.fromCharCode(action.keyCode));
-    } else {
-      parts.push(`K${action.keyCode}`);
-    }
-    return parts.join(" + ");
-  };
+  const visibleRules = useMemo(() => {
+    if (activeTab === "all") return rules;
+    if (activeTab === "navigation") return rules.filter((rule) => rule.gesture.includes("L") || rule.gesture.includes("R"));
+    if (activeTab === "apps") return rules.filter((rule) => !rule.gesture.includes("L") && !rule.gesture.includes("R"));
+    return [];
+  }, [rules, activeTab]);
 
   if (route === "home") {
     return (
-      <div className="soft-home-shell">
-        <section className="soft-home-panel">
-          <div className="soft-home-glow" aria-hidden="true" />
-          <div className="soft-home-stack">
-            <h1 className="text-[34px] font-semibold leading-[1.2] text-[var(--text-primary)]">Welcome to Gesture Control</h1>
-            <p className="mx-auto mt-3 max-w-sm text-sm text-[var(--text-secondary)]">
-              配置你的首个鼠标手势流程，快速进入控制中心。
-            </p>
-
-            <div className="mx-auto mt-7 flex max-w-sm flex-col gap-3">
-              <button type="button" className="soft-btn soft-btn-primary h-12 text-lg font-semibold" onClick={() => navigateTo("/panel")}>
-                Get Started with a Demo Gesture
-              </button>
-              <button type="button" className="soft-btn h-12 text-base font-medium" onClick={() => navigateTo("/panel?intent=create")}>
-                Create a New Gesture
-              </button>
-            </div>
+      <div className="min-h-screen bg-gradient-to-b from-[#f5f2fa] to-[#eef3ff] px-6 py-10 dark:from-zinc-950 dark:to-zinc-900">
+        <div className="mx-auto flex min-h-[80vh] w-full max-w-[720px] flex-col items-center justify-center gap-8 text-center">
+          <div className="space-y-3">
+            <h1 className="text-4xl font-semibold tracking-tight text-foreground">Welcome to Gesture Control</h1>
+            <p className="text-sm text-muted-foreground">配置你的首个鼠标手势流程，快速进入控制中心。</p>
           </div>
-        </section>
+          <div className="w-full max-w-sm space-y-3">
+            <Button className="h-12 w-full text-base" onClick={() => navigateTo("/panel")}>
+              Get Started with a Demo Gesture
+            </Button>
+            <Button variant="secondary" className="h-12 w-full text-base" onClick={() => navigateTo("/panel?intent=create")}>
+              Create a New Gesture
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="soft-config-shell">
-      <section className="soft-config-frame">
-        <header className="soft-config-topbar">
-          <div className="soft-config-tabs">
+    <div className="min-h-screen bg-gradient-to-b from-[#f5f2fa] to-[#eef3ff] p-0 dark:from-zinc-950 dark:to-zinc-900">
+      <div className="relative mx-auto h-screen w-full max-w-[720px] overflow-hidden border border-border/60 bg-card/70 shadow-sm backdrop-blur-sm dark:bg-card/80">
+        <header className="flex items-center justify-between border-b border-border/60 bg-background/60 px-4 py-2">
+          <div className="flex flex-wrap items-center gap-1">
             {[
-              { key: "all", label: "All", active: true },
-              { key: "navigation", label: "Navigation", active: false },
-              { key: "apps", label: "Apps", active: false },
-              { key: "scripts", label: "Scripts", active: false },
+              { key: "all", label: "All" },
+              { key: "navigation", label: "Navigation" },
+              { key: "apps", label: "Apps" },
+              { key: "scripts", label: "Scripts" },
             ].map((tab) => (
-              <button key={tab.key} type="button" className={`soft-tab ${tab.active ? "soft-tab-active" : ""}`}>
+              <Button
+                key={tab.key}
+                variant={activeTab === tab.key ? "secondary" : "ghost"}
+                size="sm"
+                onClick={() => setActiveTab(tab.key as typeof activeTab)}
+              >
                 {tab.label}
-              </button>
+              </Button>
             ))}
           </div>
-          <div className="flex items-center gap-3">
-            <button type="button" className="soft-home-link" onClick={() => navigateTo("/")}>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={() => navigateTo("/")}>
               Home
-            </button>
-            <button
-              type="button"
-              className="soft-record-icon-btn"
-              onClick={() => setShowCreatePanel((v) => !v)}
+            </Button>
+            <Button
+              size="icon"
+              onClick={() => setShowCreatePopover((v) => !v)}
               disabled={rulesLoading || actions.length === 0}
-              title="Record New Gesture"
-              aria-label="Record New Gesture"
+              aria-label="Add gesture"
             >
-              ⊕
-            </button>
-            <span className={`soft-listen-switch ${isListening ? "soft-listen-switch-on" : ""}`} aria-hidden="true">
-              <span />
-            </span>
-            <span className="text-[18px] leading-none text-[var(--text-secondary)]">›</span>
+              +
+            </Button>
+            <Switch checked={isListening} disabled />
           </div>
         </header>
 
-        {showCreatePanel && (
+        {showCreatePopover && (
           <>
-            <button type="button" className="soft-create-backdrop" onClick={() => setShowCreatePanel(false)} aria-label="Close create panel" />
-            <section className="soft-create-popover">
-              <div className="soft-create-grid">
-                <label className="soft-create-field">
-                  <span>Name</span>
-                  <input className="soft-input" value={draftName} onChange={(e) => setDraftName(e.target.value)} placeholder="Rule name" />
-                </label>
-                <label className="soft-create-field">
-                  <span>Button</span>
-                  <select className="soft-select" value={draftButton} onChange={(e) => setDraftButton(e.target.value as MouseButtonValue)}>
-                    {BUTTON_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="soft-create-field">
-                  <span>Gesture</span>
-                  <select className="soft-select" value={draftGesture} onChange={(e) => setDraftGesture(e.target.value)}>
-                    {GESTURE_OPTIONS.map((g) => (
-                      <option key={g} value={g}>
-                        {g}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="soft-create-field">
-                  <span>Action</span>
-                  <select className="soft-select" value={draftActionId} onChange={(e) => setDraftActionId(e.target.value)}>
-                    {actions.map((action) => (
-                      <option key={action.id} value={action.id}>
-                        {action.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-              <div className="soft-create-actions">
-                <button type="button" className="soft-btn" onClick={() => setShowCreatePanel(false)} disabled={creatingRule}>
-                  Cancel
-                </button>
-                <button type="button" className="soft-btn soft-btn-primary" onClick={() => void handleCreateFromPanel()} disabled={creatingRule}>
-                  {creatingRule ? "Adding..." : "Add Gesture"}
-                </button>
-              </div>
-            </section>
+            <button className="absolute inset-0 z-20 bg-transparent" onClick={() => setShowCreatePopover(false)} aria-label="Close" />
+            <Card className="absolute right-3 top-14 z-30 w-[400px] max-w-[calc(100%-24px)] border-border/60 bg-background/95 backdrop-blur">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Add Gesture</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-muted-foreground">Name</p>
+                    <Input value={draft.name} onChange={(e) => setDraft((prev) => ({ ...prev, name: e.target.value }))} />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-muted-foreground">Button</p>
+                    <Select
+                      value={draft.button}
+                      onChange={(e) => setDraft((prev) => ({ ...prev, button: e.target.value as MouseButtonValue }))}
+                    >
+                      {BUTTON_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-muted-foreground">Gesture</p>
+                    <Select value={draft.gesture} onChange={(e) => setDraft((prev) => ({ ...prev, gesture: e.target.value }))}>
+                      {GESTURE_OPTIONS.map((g) => (
+                        <option key={g} value={g}>
+                          {g}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-muted-foreground">Action</p>
+                    <Select value={draft.actionType} onChange={(e) => setDraft((prev) => ({ ...prev, actionType: e.target.value }))}>
+                      {actions.map((action) => (
+                        <option key={action.id} value={action.id}>
+                          {action.name}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setShowCreatePopover(false)} disabled={creatingRule}>
+                    Cancel
+                  </Button>
+                  <Button onClick={() => void createRule()} disabled={creatingRule}>
+                    {creatingRule ? "Adding..." : "Add"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </>
         )}
 
-        <main className="soft-config-main">
-          <section>
-            <div className="soft-section-head">
-              <h2 className="soft-config-title">My Gestures</h2>
-              <button type="button" className="soft-advanced-btn" onClick={() => setAdvancedView((v) => !v)}>
-                Advanced View <span className="soft-help-dot">?</span>
-              </button>
+        <main className="space-y-4 overflow-y-auto p-5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-3xl font-semibold tracking-tight text-foreground">My Gestures</h2>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => setAdvancedView((v) => !v)}>
+                Advanced View <span className="ml-1 text-muted-foreground">?</span>
+              </Button>
+              <Badge className="border-border/60 bg-secondary/80">Sort: By Usage</Badge>
             </div>
+          </div>
 
-            {rulesLoading ? (
-              <p className="soft-config-muted">Loading gestures...</p>
-            ) : (
-              <div className="soft-gesture-grid">
-                {rules.slice(0, 3).map((rule) => {
+          {rulesLoading ? (
+            <p className="text-sm text-muted-foreground">Loading gestures...</p>
+          ) : (
+            <div className="rounded-xl border border-border/60 bg-background/35 p-3 dark:bg-background/20">
+              <div className="grid grid-cols-3 gap-3">
+                {visibleRules.slice(0, 3).map((rule) => {
                   const action = actionById[rule.actionType];
                   const arrows = parseGestureArrows(rule.gesture).join("");
-                  const usage = usageByRuleId[rule.actionType] ?? 0;
+                  const usage = usageByActionId[rule.actionType] ?? 0;
                   return (
-                    <article key={rule.id} className="soft-gesture-card">
-                      <p className="soft-gesture-shortcut">{formatShortcut(action, `Ctrl + ${arrows}`)}</p>
-                      <p className="soft-gesture-name">{action?.name ?? rule.name}</p>
-                      <div className="soft-gesture-meta">
-                        <span>{arrows || "↔"}</span>
-                        <span>{usage === 0 ? "Automated" : `${usage} times`}</span>
-                      </div>
-                    </article>
+                    <Card key={rule.id} className="border-border/60 bg-background/80 shadow-sm">
+                      <CardContent className="space-y-2.5 p-3">
+                        <div className="rounded-md border border-border/80 bg-secondary/55 px-2 py-1 text-center text-2xl font-semibold leading-tight dark:bg-secondary/40">
+                          {action ? formatHotkey(action) : `Ctrl + ${arrows}`}
+                        </div>
+                        <p className="truncate text-center text-sm font-semibold text-foreground">{action?.name ?? rule.name}</p>
+                        <div className="flex items-center justify-between rounded-md border border-border/70 bg-secondary/45 px-2 py-1 text-[11px] text-muted-foreground dark:bg-secondary/30">
+                          <span>{arrows || "↔"}</span>
+                          <span>{usage === 0 ? "Automated" : `${usage} times`}</span>
+                        </div>
+                      </CardContent>
+                    </Card>
                   );
                 })}
               </div>
-            )}
-            <div className="soft-config-chip-row">
-              <span className="soft-config-chip">Filters: All</span>
-              <span className="soft-config-chip">Sort: By Usage</span>
             </div>
-          </section>
+          )}
 
-          {rulesError && <div className="soft-config-error">{rulesError}</div>}
+          <div className="flex flex-wrap gap-2">
+            <Badge className="border-border/70 bg-secondary/70">
+              Filters: {activeTab === "all" ? "All" : activeTab}
+            </Badge>
+            <Badge className="border-border/70 bg-secondary/70">Rules: {visibleRules.length}</Badge>
+          </div>
+
+          {rulesError && (
+            <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              {rulesError}
+            </div>
+          )}
 
           {advancedView && (
-            <section className="space-y-6">
+            <section className="space-y-6 border-t border-border/60 pt-4">
               <ResultSection lastResult={lastResult} />
               <RuleSection
                 rules={rules}
@@ -423,9 +438,9 @@ export function App() {
               />
               {screens.length > 0 && (
                 <section className="space-y-3">
-                  <h2 className="soft-section-title">
+                  <h2 className="text-lg font-semibold text-foreground">
                     屏幕布局
-                    <span className="ml-2 soft-subtle">{screens.length} 块显示器</span>
+                    <span className="ml-2 text-sm font-normal text-muted-foreground">{screens.length} 块显示器</span>
                   </h2>
                   <ScreenMap screens={screens} activeIndex={activeScreenIndex} />
                 </section>
@@ -433,7 +448,7 @@ export function App() {
             </section>
           )}
         </main>
-      </section>
+      </div>
     </div>
   );
 }
