@@ -51,9 +51,6 @@ export function GestureRuleCard({
   const arrows = parseGestureArrows(rule.gesture).join("");
   const stateHint = rule.enabled ? "" : " (disabled)";
   const scopeLabel = rule.scope === "global" ? "System" : rule.scope;
-  const modeLabel =
-    rule.actionHotkey != null ? "快捷键" : action?.kind === "hotkey" ? "Automated" : (action?.kind ?? "—");
-
   return (
     <Card
       className="group border border-border/90 bg-background/95 shadow-sm transition-all hover:border-primary/40 hover:shadow-md active:scale-[0.995] dark:border-border/80 dark:bg-background/90"
@@ -82,7 +79,7 @@ export function GestureRuleCard({
         <div className="border-t border-border/70 pt-2.5 text-xs text-muted-foreground dark:border-border/60">
           <span className="font-medium text-foreground/90">{scopeLabel}</span>
           <span className="mx-1.5 text-muted-foreground/50">·</span>
-          <span className="font-medium text-foreground/90">{modeLabel}</span>
+          <span className="font-medium text-foreground/90">快捷键</span>
         </div>
 
         <div className="flex items-center justify-between gap-2 border-t border-border/70 pt-3 dark:border-border/60">

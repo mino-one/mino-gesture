@@ -105,6 +105,25 @@ export function keyboardEventToHotkeySnapshot(ev: KeyboardEvent): ActionHotkeySn
   };
 }
 
+/** 仅解析主键键码（忽略事件上的修饰键），用于「先选修饰键、再录主键」分步录入 */
+export function keyboardEventToMainKeyCode(ev: KeyboardEvent): number | null {
+  if (MODIFIER_CODES.has(ev.code)) {
+    return null;
+  }
+  const keyCode = CODE_TO_MAC_KEYCODE[ev.code];
+  if (keyCode === undefined) {
+    return null;
+  }
+  return keyCode;
+}
+
+export function buildHotkeySnapshot(
+  keyCode: number,
+  mods: Pick<ActionHotkeySnapshot, "control" | "option" | "shift" | "command">,
+): ActionHotkeySnapshot {
+  return { keyCode, ...mods };
+}
+
 /** 常见键码 → 单字符/短名，便于 ⌘K 风格展示 */
 const KEYCODE_DISPLAY: Record<number, string> = {
   0: "A",

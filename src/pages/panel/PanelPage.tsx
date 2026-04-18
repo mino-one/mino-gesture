@@ -8,7 +8,6 @@ import {
 } from "../../gesture";
 import { formatHotkeySnapshot } from "../../lib/macKeyboard";
 import type { MouseButtonValue } from "../../types/app";
-import { INLINE_HOTKEY_ACTION_TYPE } from "../../types/app";
 import { GestureRuleCard } from "../../components/GestureRuleCard";
 import { KeybindingRecorder } from "../../components/KeybindingRecorder";
 import { ResultSection } from "../../components/ResultSection";
@@ -40,7 +39,6 @@ export function PanelPage({ routeSearch, onIntentHandled }: PanelPageProps) {
     screens,
     activeScreenIndex,
     rules,
-    actions,
     rulesLoading,
     rulesError,
     savingRuleId,
@@ -134,71 +132,12 @@ export function PanelPage({ routeSearch, onIntentHandled }: PanelPageProps) {
                     <p className="text-[11px] leading-snug text-muted-foreground">{formatGestureTriggerLabelZh(draft.gesture)}</p>
                   </div>
                   <div className="space-y-2 sm:col-span-2">
-                    <p className="text-xs font-medium text-muted-foreground">操作</p>
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant={draft.actionMode === "preset" ? "default" : "outline"}
-                        className="h-8"
-                        onClick={() =>
-                          setDraft((p) => ({
-                            ...p,
-                            actionMode: "preset",
-                            actionHotkey: null,
-                            actionType:
-                              p.actionType === INLINE_HOTKEY_ACTION_TYPE
-                                ? actions[0]?.id ?? ""
-                                : p.actionType,
-                          }))
-                        }
-                      >
-                        预设动作
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant={draft.actionMode === "hotkey" ? "default" : "outline"}
-                        className="h-8"
-                        onClick={() => setDraft((p) => ({ ...p, actionMode: "hotkey" }))}
-                      >
-                        键盘快捷键
-                      </Button>
-                    </div>
-                    {draft.actionMode === "preset" ? (
-                      <>
-                        <Input
-                          id="panel-rule-action-type"
-                          list="panel-rule-action-datalist"
-                          value={
-                            draft.actionType === INLINE_HOTKEY_ACTION_TYPE ? "" : draft.actionType
-                          }
-                          onChange={(e) =>
-                            setDraft((prev) => ({ ...prev, actionType: e.target.value }))
-                          }
-                          placeholder="输入动作 ID 或从建议中选"
-                          autoComplete="off"
-                          spellCheck={false}
-                          className="border-border/80 bg-background/95 font-mono text-[13px]"
-                        />
-                        <datalist id="panel-rule-action-datalist">
-                          {actions.map((a) => (
-                            <option key={a.id} value={a.id}>
-                              {a.name}
-                            </option>
-                          ))}
-                        </datalist>
-                        <p className="text-[11px] leading-snug text-muted-foreground">
-                          使用配置中已注册的动作 id；可从浏览器建议快速填入。
-                        </p>
-                      </>
-                    ) : (
-                      <KeybindingRecorder
-                        value={draft.actionHotkey}
-                        onChange={(v) => setDraft((p) => ({ ...p, actionHotkey: v }))}
-                        disabled={formBusy}
-                      />
-                    )}
+                    <p className="text-xs font-medium text-muted-foreground">快捷键</p>
+                    <KeybindingRecorder
+                      value={draft.actionHotkey}
+                      onChange={(v) => setDraft((p) => ({ ...p, actionHotkey: v }))}
+                      disabled={formBusy}
+                    />
                   </div>
                 </div>
                 {editingRuleId && (
@@ -231,10 +170,7 @@ export function PanelPage({ routeSearch, onIntentHandled }: PanelPageProps) {
           ) : (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {filteredRules.map((rule) => {
-                const action =
-                  rule.actionHotkey && rule.actionType === INLINE_HOTKEY_ACTION_TYPE
-                    ? undefined
-                    : actionById[rule.actionType];
+                const action = rule.actionHotkey ? undefined : actionById[rule.actionType];
                 const triggerLabel = formatGestureTriggerLabel(rule.gesture);
                 const hotkeyText = rule.actionHotkey
                   ? formatHotkeySnapshot(rule.actionHotkey)

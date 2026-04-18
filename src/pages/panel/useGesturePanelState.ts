@@ -7,10 +7,21 @@ import type {
   GestureResult,
   RuleConfig,
   ScreenInfo,
+  ActionHotkeySnapshot,
   TimedGestureResult,
   TrailStartPayload,
 } from "../../types/app";
 import { INLINE_HOTKEY_ACTION_TYPE } from "../../types/app";
+
+function actionConfigToHotkeySnapshot(a: ActionConfig): ActionHotkeySnapshot {
+  return {
+    keyCode: a.keyCode,
+    control: a.control,
+    option: a.option,
+    shift: a.shift,
+    command: a.command,
+  };
+}
 
 type UseGesturePanelStateOptions = {
   routeSearch: string;
@@ -40,9 +51,7 @@ export function useGesturePanelState({ routeSearch, onIntentHandled }: UseGestur
     name: "新规则",
     button: "middle",
     gesture: "U",
-    actionType: "",
     actionHotkey: null,
-    actionMode: "preset",
   });
 
   const shouldAutoCreateRule = useMemo(
@@ -74,27 +83,30 @@ export function useGesturePanelState({ routeSearch, onIntentHandled }: UseGestur
       name: "新规则",
       button: "middle",
       gesture: "U",
-      actionType: actions[0]?.id ?? "",
       actionHotkey: null,
-      actionMode: "preset",
     });
     setDraftEnabled(true);
     setRuleFormOpen(true);
-  }, [actions]);
-
-  const openRuleFormEdit = useCallback((rule: RuleConfig) => {
-    setEditingRuleId(rule.id);
-    setDraft({
-      name: rule.name,
-      button: rule.button,
-      gesture: rule.gesture,
-      actionType: rule.actionType,
-      actionHotkey: rule.actionHotkey ?? null,
-      actionMode: rule.actionHotkey ? "hotkey" : "preset",
-    });
-    setDraftEnabled(rule.enabled);
-    setRuleFormOpen(true);
   }, []);
+
+  const openRuleFormEdit = useCallback(
+    (rule: RuleConfig) => {
+      setEditingRuleId(rule.id);
+      const fromAction = actionById[rule.actionType];
+      const hotkey =
+        rule.actionHotkey ??
+        (fromAction?.kind === "hotkey" ? actionConfigToHotkeySnapshot(fromAction) : null);
+      setDraft({
+        name: rule.name,
+        button: rule.button,
+        gesture: rule.gesture,
+        actionHotkey: hotkey,
+      });
+      setDraftEnabled(rule.enabled);
+      setRuleFormOpen(true);
+    },
+    [actionById],
+  );
 
   const refreshRulesAndActions = useCallback(async () => {
     setRulesLoading(true);
@@ -106,7 +118,6 @@ export function useGesturePanelState({ routeSearch, onIntentHandled }: UseGestur
       ]);
       setRules(nextRules);
       setActions(nextActions);
-      setDraft((prev) => ({ ...prev, actionType: prev.actionType || nextActions[0]?.id || "" }));
     } catch (err) {
       setRulesError(String(err));
     } finally {
@@ -190,13 +201,8 @@ export function useGesturePanelState({ routeSearch, onIntentHandled }: UseGestur
 
   const createRule = useCallback(
     async (payload?: Partial<CreateRuleDraft>) => {
-      const mode = payload?.actionMode ?? draft.actionMode;
       const hotkey = payload?.actionHotkey ?? draft.actionHotkey;
-      if (mode === "preset" && actions.length === 0) {
-        setRulesError("当前没有可用预设动作，请改用「键盘快捷键」或检查配置。");
-        return;
-      }
-      if (mode === "hotkey" && !hotkey) {
+      if (!hotkey) {
         setRulesError("请先录制快捷键。");
         return;
       }
@@ -204,28 +210,20 @@ export function useGesturePanelState({ routeSearch, onIntentHandled }: UseGestur
         name: payload?.name?.trim() || draft.name || "新规则",
         button: payload?.button ?? draft.button,
         gesture: (payload?.gesture ?? draft.gesture).toUpperCase(),
-        actionType: payload?.actionType ?? draft.actionType ?? (actions[0]?.id ?? ""),
-        actionHotkey: payload?.actionHotkey ?? draft.actionHotkey,
-        actionMode: mode,
+        actionHotkey: hotkey,
       };
 
       setCreatingRule(true);
       setRulesError(null);
       try {
-        const body: Record<string, unknown> = {
-          name: finalPayload.name,
-          scope: "global",
-          button: finalPayload.button,
-          gesture: finalPayload.gesture,
-        };
-        if (finalPayload.actionMode === "hotkey" && finalPayload.actionHotkey) {
-          body.actionHotkey = finalPayload.actionHotkey;
-        } else {
-          body.actionType = finalPayload.actionType || actions[0]?.id;
-        }
-
         const created = await invoke<RuleConfig>("create_rule", {
-          payload: body,
+          payload: {
+            name: finalPayload.name,
+            scope: "global",
+            button: finalPayload.button,
+            gesture: finalPayload.gesture,
+            actionHotkey: finalPayload.actionHotkey,
+          },
         });
         setRules((prev) => [created, ...prev]);
         closeRuleForm();
@@ -236,52 +234,31 @@ export function useGesturePanelState({ routeSearch, onIntentHandled }: UseGestur
         setCreatingRule(false);
       }
     },
-    [actions, draft.actionHotkey, draft.actionMode, draft.actionType, draft.button, draft.gesture, draft.name, closeRuleForm],
+    [draft.actionHotkey, draft.button, draft.gesture, draft.name, closeRuleForm],
   );
 
   const submitRuleForm = useCallback(async () => {
     if (editingRuleId) {
       const base = rules.find((r) => r.id === editingRuleId);
       if (!base) return;
-      if (draft.actionMode === "hotkey") {
-        if (!draft.actionHotkey) {
-          setRulesError("请先录制快捷键。");
-          return;
-        }
-        await saveRule({
-          ...base,
-          name: draft.name.trim() || base.name,
-          button: draft.button,
-          gesture: draft.gesture.toUpperCase(),
-          actionType: INLINE_HOTKEY_ACTION_TYPE,
-          actionHotkey: draft.actionHotkey,
-          enabled: draftEnabled,
-        });
-      } else {
-        const at = draft.actionType.trim();
-        if (!at) {
-          setRulesError("请选择或输入预设动作 ID。");
-          return;
-        }
-        await saveRule({
-          ...base,
-          name: draft.name.trim() || base.name,
-          button: draft.button,
-          gesture: draft.gesture.toUpperCase(),
-          actionType: at,
-          actionHotkey: null,
-          enabled: draftEnabled,
-        });
+      if (!draft.actionHotkey) {
+        setRulesError("请先录制快捷键。");
+        return;
       }
+      await saveRule({
+        ...base,
+        name: draft.name.trim() || base.name,
+        button: draft.button,
+        gesture: draft.gesture.toUpperCase(),
+        actionType: INLINE_HOTKEY_ACTION_TYPE,
+        actionHotkey: draft.actionHotkey,
+        enabled: draftEnabled,
+      });
       closeRuleForm();
       return;
     }
-    if (draft.actionMode === "hotkey" && !draft.actionHotkey) {
+    if (!draft.actionHotkey) {
       setRulesError("请先录制快捷键。");
-      return;
-    }
-    if (draft.actionMode === "preset" && !draft.actionType.trim()) {
-      setRulesError("请选择或输入预设动作 ID。");
       return;
     }
     await createRule();
@@ -302,16 +279,15 @@ export function useGesturePanelState({ routeSearch, onIntentHandled }: UseGestur
 
   useEffect(() => {
     if (!shouldAutoCreateRule) return;
-    if (rulesLoading || creatingRule || actions.length === 0) return;
+    if (rulesLoading || creatingRule) return;
 
     const intentKey = routeSearch;
     if (handledIntentRef.current === intentKey) return;
     handledIntentRef.current = intentKey;
 
-    void createRule().finally(() => {
-      onIntentHandled();
-    });
-  }, [shouldAutoCreateRule, rulesLoading, creatingRule, actions.length, routeSearch, createRule, onIntentHandled]);
+    openRuleFormCreate();
+    onIntentHandled();
+  }, [shouldAutoCreateRule, rulesLoading, creatingRule, routeSearch, openRuleFormCreate, onIntentHandled]);
 
   const filteredRules = useMemo(() => {
     const sorted = [...rules];
@@ -337,7 +313,6 @@ export function useGesturePanelState({ routeSearch, onIntentHandled }: UseGestur
     screens,
     activeScreenIndex,
     rules,
-    actions,
     rulesLoading,
     rulesError,
     savingRuleId,

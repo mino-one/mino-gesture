@@ -65,13 +65,9 @@ export type ViewRoute = "home" | "panel";
 
 export type TimedGestureResult = GestureResult & { at: number };
 
-export type ActionMode = "preset" | "hotkey";
-
 export type CreateRuleDraft = {
   name: string;
   button: MouseButtonValue;
   gesture: string;
-  actionType: string;
   actionHotkey: ActionHotkeySnapshot | null;
-  actionMode: ActionMode;
 };
