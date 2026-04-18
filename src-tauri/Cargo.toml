@@ -21,4 +21,5 @@ thiserror = "2"
 toml = "0.8"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter"] }
-rdev = "0.5"
+# 使用 git 版本修复 macOS 键盘崩溃问题 (Issue #165, #146)
+rdev = { git = "https://github.com/Narsil/rdev.git", rev = "c77b4e5456301cfa7f2226020f2a58f2f8d77c5d" }

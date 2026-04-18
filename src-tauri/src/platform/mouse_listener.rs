@@ -38,6 +38,11 @@ pub fn spawn_middle_button_listener(app: AppHandle, state: Arc<Mutex<AppState>>)
         let state_clone = state.clone();
         let app_clone = app.clone();
 
+        // 修复 macOS 键盘崩溃：告知 rdev 当前不在主线程
+        // 参考: https://github.com/Narsil/rdev/issues/165
+        #[cfg(target_os = "macos")]
+        rdev::set_is_main_thread(false);
+
         tracing::info!("starting rdev::listen...");
         if let Err(e) = rdev::listen(move |event| {
             match event.event_type {
