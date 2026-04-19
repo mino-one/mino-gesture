@@ -73,12 +73,16 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::get_status,
+            commands::get_settings_overview,
             commands::list_rules,
             commands::list_actions,
             commands::create_rule,
             commands::update_rule,
             commands::delete_rule,
             commands::reset_rules,
+            commands::set_launch_at_login,
+            commands::open_settings_target,
+            commands::open_external,
             commands::set_enabled,
             commands::execute_gesture,
             commands::run_foundation_probe

@@ -14,8 +14,9 @@ import { GestureRuleCard } from "./components/GestureRuleCard";
 import { KeybindingRecorder } from "./components/KeybindingRecorder";
 import { ResultSection } from "./components/ResultSection";
 import { ScreenMap } from "./components/ScreenMap";
+import { SettingsSheet } from "./components/SettingsSheet";
 import { PageLayout } from "../../components/layout/PageLayout";
-import { IconPlus, IconRotateCcw } from "../../components/icons";
+import { IconPlus, IconSettings } from "../../components/icons";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
@@ -30,6 +31,7 @@ type PanelPageProps = {
 
 export function PanelPage({ routeSearch, onIntentHandled }: PanelPageProps) {
   const [logOverlayOpen, setLogOverlayOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const {
     ruleFormOpen,
@@ -106,11 +108,13 @@ export function PanelPage({ routeSearch, onIntentHandled }: PanelPageProps) {
           variant="ghost"
           size="sm"
           className="h-9 gap-1.5 px-2.5 text-muted-foreground hover:text-foreground"
-          onClick={() => void resetRules()}
-          disabled={resettingRules || rulesLoading}
+          onClick={() => setSettingsOpen(true)}
+          aria-label="打开设置"
+          aria-haspopup="dialog"
+          aria-expanded={settingsOpen}
         >
-          <IconRotateCcw className="h-4 w-4" />
-          {resettingRules ? "恢复中…" : "恢复示例规则"}
+          <IconSettings className="h-4 w-4" />
+          设置
         </Button>
       </div>
     </div>
@@ -122,10 +126,6 @@ export function PanelPage({ routeSearch, onIntentHandled }: PanelPageProps) {
         <span>{filteredRules.length} 条规则</span>
         <span>{gestureLog.length} 条识别记录</span>
         <span>{screens.length > 0 ? `${screens.length} 块显示器` : "未检测到显示器信息"}</span>
-      </div>
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-        <span>{lastResult?.matched ? "最近一次识别已匹配规则" : "最近一次识别尚未匹配规则"}</span>
-        <span>中键或右键按住后移动即可测试</span>
       </div>
     </div>
   );
@@ -156,6 +156,12 @@ export function PanelPage({ routeSearch, onIntentHandled }: PanelPageProps) {
         onOpenChange={setLogOverlayOpen}
         onClear={clearGestureLog}
         entries={gestureLog}
+      />
+      <SettingsSheet
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+        onResetRules={resetRules}
+        resettingRules={resettingRules || rulesLoading}
       />
 
       <Sheet open={ruleFormOpen} onOpenChange={(open) => !open && closeRuleForm()}>

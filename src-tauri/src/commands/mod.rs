@@ -9,9 +9,21 @@ use crate::core::execution_result::ExecutionResult;
 use crate::core::state::AppState;
 use crate::domain::gesture::{self, Point};
 use serde::{Deserialize, Serialize};
+use std::path::{Path, PathBuf};
+use std::process::Command;
 use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
-use tauri::State;
+use tauri::{AppHandle, State};
+
+const GITHUB_REPO_URL: &str = "https://github.com/Asplitline/mino-gesture";
+const GITHUB_RELEASES_URL: &str = "https://github.com/Asplitline/mino-gesture/releases";
+
+#[cfg(target_os = "macos")]
+#[link(name = "ApplicationServices", kind = "framework")]
+unsafe extern "C" {
+    fn AXIsProcessTrusted() -> bool;
+    fn CGPreflightListenEventAccess() -> bool;
+}
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -22,6 +34,50 @@ pub struct StatusResponse {
     pub hotkey_ready: bool,
     pub config_path: String,
     pub last_execution: Option<ExecutionResult>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PermissionStatusResponse {
+    pub accessibility: bool,
+    pub input_monitoring: bool,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LaunchAtLoginResponse {
+    pub available: bool,
+    pub enabled: bool,
+    pub message: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateStatusResponse {
+    pub auto_update_enabled: bool,
+    pub message: String,
+    pub releases_url: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AboutResponse {
+    pub author: String,
+    pub github_url: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SettingsOverviewResponse {
+    pub app_name: String,
+    pub version: String,
+    pub tauri_version: String,
+    pub bundle_identifier: String,
+    pub config_path: String,
+    pub permissions: PermissionStatusResponse,
+    pub launch_at_login: LaunchAtLoginResponse,
+    pub updates: UpdateStatusResponse,
+    pub about: AboutResponse,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -68,6 +124,139 @@ pub struct ExecuteGestureRequest {
     button: String,
 }
 
+fn open_with_macos(target: &str) -> Result<(), String> {
+    let status = Command::new("open")
+        .arg(target)
+        .status()
+        .map_err(|e| e.to_string())?;
+    if status.success() {
+        Ok(())
+    } else {
+        Err(format!("failed to open target: {target}"))
+    }
+}
+
+fn applescript_escape(input: &str) -> String {
+    input.replace('\\', "\\\\").replace('"', "\\\"")
+}
+
+fn run_osascript(script: &str) -> Result<String, String> {
+    let output = Command::new("osascript")
+        .arg("-e")
+        .arg(script)
+        .output()
+        .map_err(|e| e.to_string())?;
+
+    if output.status.success() {
+        Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        Err(if stderr.is_empty() {
+            "osascript failed".to_string()
+        } else {
+            stderr
+        })
+    }
+}
+
+fn app_bundle_or_binary_path() -> Result<PathBuf, String> {
+    let current_exe = std::env::current_exe().map_err(|e| e.to_string())?;
+    for ancestor in current_exe.ancestors() {
+        if ancestor
+            .extension()
+            .and_then(|ext| ext.to_str())
+            .is_some_and(|ext| ext.eq_ignore_ascii_case("app"))
+        {
+            return Ok(ancestor.to_path_buf());
+        }
+    }
+    Ok(current_exe)
+}
+
+fn login_item_exists(name: &str) -> Result<bool, String> {
+    let script = format!(
+        "tell application \"System Events\" to exists login item \"{}\"",
+        applescript_escape(name)
+    );
+    Ok(run_osascript(&script)?.eq_ignore_ascii_case("true"))
+}
+
+fn set_login_item_enabled(name: &str, path: &Path, enabled: bool) -> Result<(), String> {
+    let escaped_name = applescript_escape(name);
+    let escaped_path = applescript_escape(&path.display().to_string());
+    let script = if enabled {
+        format!(
+            "tell application \"System Events\"\n\
+             if exists login item \"{escaped_name}\" then delete login item \"{escaped_name}\"\n\
+             make login item at end with properties {{name:\"{escaped_name}\", path:\"{escaped_path}\", hidden:false}}\n\
+             end tell"
+        )
+    } else {
+        format!(
+            "tell application \"System Events\"\n\
+             if exists login item \"{escaped_name}\" then delete login item \"{escaped_name}\"\n\
+             end tell"
+        )
+    };
+    run_osascript(&script).map(|_| ())
+}
+
+fn detect_permissions() -> PermissionStatusResponse {
+    #[cfg(target_os = "macos")]
+    {
+        PermissionStatusResponse {
+            accessibility: unsafe { AXIsProcessTrusted() },
+            input_monitoring: unsafe { CGPreflightListenEventAccess() },
+        }
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        PermissionStatusResponse {
+            accessibility: false,
+            input_monitoring: false,
+        }
+    }
+}
+
+fn launch_at_login_status(app: &AppHandle) -> LaunchAtLoginResponse {
+    let name = app.package_info().name.clone();
+    match login_item_exists(&name) {
+        Ok(enabled) => LaunchAtLoginResponse {
+            available: true,
+            enabled,
+            message: "通过 macOS 登录项管理；首次切换时系统可能会请求自动化权限。".to_string(),
+        },
+        Err(err) => LaunchAtLoginResponse {
+            available: false,
+            enabled: false,
+            message: format!("无法读取登录项状态：{err}"),
+        },
+    }
+}
+
+fn settings_overview(app: &AppHandle, config_path: String) -> SettingsOverviewResponse {
+    let package = app.package_info();
+    SettingsOverviewResponse {
+        app_name: package.name.clone(),
+        version: package.version.to_string(),
+        tauri_version: tauri::VERSION.to_string(),
+        bundle_identifier: app.config().identifier.clone(),
+        config_path,
+        permissions: detect_permissions(),
+        launch_at_login: launch_at_login_status(app),
+        updates: UpdateStatusResponse {
+            auto_update_enabled: false,
+            message: "当前版本未接入内置自动更新，可通过 GitHub Releases 手动安装新版本。".to_string(),
+            releases_url: GITHUB_RELEASES_URL.to_string(),
+        },
+        about: AboutResponse {
+            author: "Asplitline".to_string(),
+            github_url: GITHUB_REPO_URL.to_string(),
+        },
+    }
+}
+
 fn default_scope() -> String {
     "global".to_string()
 }
@@ -87,6 +276,18 @@ pub fn get_status(state: State<'_, Arc<Mutex<AppState>>>) -> Result<StatusRespon
         config_path: guard.config.path().display().to_string(),
         last_execution: guard.last_execution.clone(),
     })
+}
+
+#[tauri::command]
+pub fn get_settings_overview(
+    app: AppHandle,
+    state: State<'_, Arc<Mutex<AppState>>>,
+) -> Result<SettingsOverviewResponse, String> {
+    let guard = state.lock().map_err(|e| e.to_string())?;
+    Ok(settings_overview(
+        &app,
+        guard.config.path().display().to_string(),
+    ))
 }
 
 #[tauri::command]
@@ -215,6 +416,42 @@ pub fn reset_rules(state: State<'_, Arc<Mutex<AppState>>>) -> Result<Vec<RuleCon
     guard.config.reset_rules_to_builtin();
     guard.config.save().map_err(|e| e.to_string())?;
     Ok(guard.config.rules().to_vec())
+}
+
+#[tauri::command]
+pub fn set_launch_at_login(
+    enabled: bool,
+    app: AppHandle,
+    state: State<'_, Arc<Mutex<AppState>>>,
+) -> Result<SettingsOverviewResponse, String> {
+    let path = app_bundle_or_binary_path()?;
+    let name = app.package_info().name.clone();
+    set_login_item_enabled(&name, &path, enabled)?;
+
+    let guard = state.lock().map_err(|e| e.to_string())?;
+    Ok(settings_overview(
+        &app,
+        guard.config.path().display().to_string(),
+    ))
+}
+
+#[tauri::command]
+pub fn open_settings_target(target: String) -> Result<(), String> {
+    let url = match target.as_str() {
+        "accessibility" => "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility",
+        "input-monitoring" => "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent",
+        "login-items" => "x-apple.systempreferences:com.apple.LoginItems-Settings.extension",
+        _ => return Err(format!("unsupported settings target: {target}")),
+    };
+    open_with_macos(url)
+}
+
+#[tauri::command]
+pub fn open_external(url: String) -> Result<(), String> {
+    if url.trim().is_empty() {
+        return Err("empty url".to_string());
+    }
+    open_with_macos(url.trim())
 }
 
 #[tauri::command]

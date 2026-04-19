@@ -71,3 +71,29 @@ export type CreateRuleDraft = {
   gesture: string;
   actionHotkey: ActionHotkeySnapshot | null;
 };
+
+export type SettingsOverview = {
+  appName: string;
+  version: string;
+  tauriVersion: string;
+  bundleIdentifier: string;
+  configPath: string;
+  permissions: {
+    accessibility: boolean;
+    inputMonitoring: boolean;
+  };
+  launchAtLogin: {
+    available: boolean;
+    enabled: boolean;
+    message: string;
+  };
+  updates: {
+    autoUpdateEnabled: boolean;
+    message: string;
+    releasesUrl: string;
+  };
+  about: {
+    author: string;
+    githubUrl: string;
+  };
+};
