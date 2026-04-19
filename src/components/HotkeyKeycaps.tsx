@@ -5,10 +5,10 @@ import { cn } from "../lib/utils";
 
 /** 单颗键帽外观，可与 {@link KeycapRow} 组合 */
 export const keycapClass =
-  "inline-flex min-h-[22px] min-w-[1.25rem] shrink-0 items-center justify-center rounded border border-border/90 bg-gradient-to-b from-background to-muted/70 px-1 py-px font-mono text-[11px] font-medium leading-none tabular-nums text-foreground shadow-[0_1px_0_rgba(0,0,0,0.06)] dark:border-border/55 dark:from-zinc-800/95 dark:to-zinc-950 dark:shadow-none";
+  "inline-flex min-h-[20px] min-w-[1.15rem] shrink-0 items-center justify-center rounded-[7px] border border-[hsl(var(--border)/0.88)] bg-[linear-gradient(180deg,rgba(248,249,252,0.98),rgba(238,241,247,0.98))] px-1.5 py-px text-[10px] font-medium leading-none text-[hsl(var(--foreground)/0.82)] shadow-[inset_0_1px_0_rgba(255,255,255,0.92),0_1px_1px_rgba(15,23,42,0.06)] dark:border-border/55 dark:from-zinc-800/95 dark:to-zinc-950 dark:shadow-none";
 
 const plusClass =
-  "select-none px-0.5 text-[10px] font-medium leading-none text-muted-foreground/90";
+  "select-none px-0.5 text-[9px] font-medium leading-none text-muted-foreground/75";
 
 export type KeycapProps = {
   children: ReactNode;
