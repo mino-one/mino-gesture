@@ -227,7 +227,7 @@ function createAnnotatedTag(tag) {
 function printPushInstructions(tag) {
   const ref = getPushRef();
   console.log("\n请推送（触发 CI 发版）：");
-  console.log(`  git push origin ${ref} && git push origin ${tag}`);
+  console.log(` git add .  && git commit --amend --no-edit && git push origin ${ref} && git push origin ${tag}`);
 }
 
 /** 在当前 HEAD 上创建 v<version>（需三处版本文件已与 HEAD 一致） */
