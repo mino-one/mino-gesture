@@ -274,6 +274,11 @@ export function useGesturePanelState({ routeSearch, onIntentHandled }: UseGestur
     }
   }, []);
 
+  const clearGestureLog = useCallback(() => {
+    setHistory([]);
+    setLastResult(null);
+  }, []);
+
   useEffect(() => {
     if (!shouldAutoCreateRule) return;
     if (rulesLoading || creatingRule) return;
@@ -318,6 +323,7 @@ export function useGesturePanelState({ routeSearch, onIntentHandled }: UseGestur
     setDraft,
     actionById,
     filteredRules,
+    clearGestureLog,
     updateRuleLocal,
     saveRule,
     removeRule,

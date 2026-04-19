@@ -15,6 +15,9 @@
       {
         "label": "main",
         "title": "",
+        "backgroundColor": "#EEF1F7",
+        "titleBarStyle": "Transparent",
+        "hiddenTitle": true,
         "width": 720,
         "minWidth": 720,
         "maxWidth": 720,

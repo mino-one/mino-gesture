@@ -61,3 +61,21 @@ export function IconClear(props: IconBaseProps) {
     </IconBase>
   );
 }
+
+export function IconPlus(props: IconBaseProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M12 5v14" />
+      <path d="M5 12h14" />
+    </IconBase>
+  );
+}
+
+export function IconRotateCcw(props: IconBaseProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M3 12a9 9 0 1 0 3-6.7" />
+      <path d="M3 4v5h5" />
+    </IconBase>
+  );
+}

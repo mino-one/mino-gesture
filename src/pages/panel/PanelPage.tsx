@@ -14,11 +14,12 @@ import { GestureRuleCard } from "./components/GestureRuleCard";
 import { KeybindingRecorder } from "./components/KeybindingRecorder";
 import { ResultSection } from "./components/ResultSection";
 import { ScreenMap } from "./components/ScreenMap";
-import { IconScrollText } from "../../components/icons";
+import { PageLayout } from "../../components/layout/PageLayout";
+import { IconPlus, IconRotateCcw, IconScrollText } from "../../components/icons";
 import { Button } from "../../components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
 import { Select } from "../../components/ui/select";
+import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "../../components/ui/sheet";
 import { useGesturePanelState } from "./useGesturePanelState";
 
 type PanelPageProps = {
@@ -50,80 +51,127 @@ export function PanelPage({ routeSearch, onIntentHandled }: PanelPageProps) {
     setDraft,
     actionById,
     filteredRules,
+    clearGestureLog,
     removeRule,
     resetRules,
     saveRule,
   } = useGesturePanelState({ routeSearch, onIntentHandled });
 
+  const header = (
+    <div className="flex flex-col gap-3 py-3 sm:flex-row sm:items-end sm:justify-between">
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <h1 className="text-lg font-semibold tracking-[-0.02em] text-foreground">手势规则</h1>
+          <span className="rounded-full border border-border/75 bg-background/80 px-2.5 py-1 text-xs font-medium text-muted-foreground">
+            {filteredRules.length} 条规则
+          </span>
+          <span className="rounded-full border border-border/75 bg-background/80 px-2.5 py-1 text-xs font-medium text-muted-foreground">
+            {gestureLog.length} 条日志
+          </span>
+        </div>
+        <p className="mt-1 text-sm text-muted-foreground">管理触发方式、快捷键映射和最近一次识别结果。</p>
+      </div>
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-9 gap-1.5 px-3"
+          onClick={() => setLogOverlayOpen(true)}
+          aria-label={`查看识别日志，${gestureLog.length} 条`}
+          aria-haspopup="dialog"
+          aria-expanded={logOverlayOpen}
+        >
+          <IconScrollText className="h-4 w-4 text-muted-foreground" />
+          识别日志
+          <span className="ml-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary/12 px-1.5 text-[11px] font-semibold leading-none text-primary">
+            {gestureLog.length > 999 ? "999+" : gestureLog.length}
+          </span>
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-9 gap-1.5 px-3"
+          onClick={() => void resetRules()}
+          disabled={resettingRules || rulesLoading}
+        >
+          <IconRotateCcw className="h-4 w-4 text-muted-foreground" />
+          {resettingRules ? "重置中…" : "重置默认"}
+        </Button>
+        <Button
+          size="sm"
+          className="h-9 gap-1.5 px-3"
+          onClick={() => {
+            if (ruleFormOpen && editingRuleId === null) {
+              closeRuleForm();
+            } else {
+              openRuleFormCreate();
+            }
+          }}
+          disabled={rulesLoading}
+          aria-label="新建规则"
+          aria-haspopup="dialog"
+          aria-expanded={ruleFormOpen}
+        >
+          <IconPlus className="h-4 w-4" />
+          新建规则
+        </Button>
+      </div>
+    </div>
+  );
+
+  const footer = (
+    <div className="flex flex-wrap items-center justify-between gap-2 py-2.5 text-xs text-muted-foreground">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+        <span>{filteredRules.length} 条规则</span>
+        <span>{gestureLog.length} 条识别记录</span>
+        <span>{screens.length > 0 ? `${screens.length} 块显示器` : "未检测到显示器信息"}</span>
+      </div>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+        <span>{lastResult?.matched ? "最近一次识别已匹配规则" : "最近一次识别尚未匹配规则"}</span>
+        <span>中键或右键按住后移动即可测试</span>
+      </div>
+    </div>
+  );
+
+  const sidebar = (
+    <>
+      <ResultSection lastResult={lastResult} />
+      {screens.length > 0 ? <ScreenMap screens={screens} activeIndex={activeScreenIndex} /> : null}
+    </>
+  );
+
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,#f4f5f8_0%,#eef1f7_100%)] p-0 dark:from-zinc-950 dark:to-zinc-900">
-      <div className="relative mx-auto flex min-h-screen w-full max-w-[1440px] flex-col">
-        <header className="border-b border-border/65 bg-background/70 backdrop-blur-[14px]">
-          <div className="mx-auto flex max-w-[1380px] flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-5">
-          <div className="min-w-0">
-            <h1 className="text-lg font-semibold tracking-[-0.02em] text-foreground">手势规则</h1>
-            <p className="mt-0.5 text-sm text-muted-foreground">管理触发方式、快捷键映射和最近一次识别结果。</p>
-          </div>
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="relative h-9 w-9 shrink-0 p-0"
-              onClick={() => setLogOverlayOpen(true)}
-              aria-label={`查看识别日志，${gestureLog.length} 条`}
-              aria-haspopup="dialog"
-              aria-expanded={logOverlayOpen}
-            >
-              <IconScrollText className="h-4 w-4 text-muted-foreground" />
-              <span className="absolute -right-1.5 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-primary-foreground shadow-sm">
-                {gestureLog.length > 999 ? "999+" : gestureLog.length}
-              </span>
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-9"
-              onClick={() => void resetRules()}
-              disabled={resettingRules || rulesLoading}
-            >
-              {resettingRules ? "重置中…" : "重置默认"}
-            </Button>
-            <Button
-              size="sm"
-              className="h-9 gap-1.5 px-3"
-              onClick={() => {
-                if (ruleFormOpen && editingRuleId === null) {
-                  closeRuleForm();
-                } else {
-                  openRuleFormCreate();
-                }
-              }}
-              disabled={rulesLoading}
-              aria-label="新建规则"
-              aria-haspopup="dialog"
-              aria-expanded={ruleFormOpen}
-            >
-              <span aria-hidden className="text-base leading-none">
-                +
-              </span>
-              新建规则
-            </Button>
-          </div>
-          </div>
-        </header>
+    <PageLayout
+      header={header}
+      footer={footer}
+      sidebar={sidebar}
+      containerSize="xl"
+      stickyHeader
+      stickyFooter
+      stickySidebar
+      contentClassName="overflow-hidden"
+      contentContainerClassName="py-5 xl:grid-cols-[minmax(0,1fr)_320px]"
+      headerClassName="border-b border-border/65 bg-background/78 backdrop-blur-[14px]"
+      footerClassName="border-t border-border/65 bg-background/82 backdrop-blur-[10px]"
+    >
+      <GestureLogOverlay
+        open={logOverlayOpen}
+        onOpenChange={setLogOverlayOpen}
+        onClear={clearGestureLog}
+        entries={gestureLog}
+      />
 
-        <GestureLogOverlay open={logOverlayOpen} onOpenChange={setLogOverlayOpen} entries={gestureLog} />
-
-        {ruleFormOpen && (
-          <>
-            <button className="absolute inset-0 z-20 bg-transparent" onClick={() => closeRuleForm()} aria-label="Close" />
-            <Card className="absolute right-4 top-[82px] z-30 w-[420px] max-w-[calc(100%-32px)] rounded-[20px] border-border/70 bg-background/95 shadow-[0_14px_36px_rgba(36,48,83,0.12)] backdrop-blur">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">{editingRuleId ? "编辑规则" : "新建规则"}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3.5">
+      <Sheet open={ruleFormOpen} onOpenChange={(open) => !open && closeRuleForm()}>
+        <SheetContent side="right" className="flex h-full flex-col sm:max-w-[440px]">
+          <div className="flex min-h-0 flex-1 flex-col px-5 py-4">
+            <SheetHeader className="border-b border-border/70 pb-3">
+              <SheetTitle>{editingRuleId ? "编辑规则" : "新建规则"}</SheetTitle>
+              <SheetDescription>设置触发按键、滑动方向和需要执行的快捷键。</SheetDescription>
+            </SheetHeader>
+            <div className="min-h-0 flex-1 overflow-y-auto py-4">
+              <div className="space-y-3.5">
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <p className="text-xs font-medium text-muted-foreground">名称</p>
@@ -165,92 +213,87 @@ export function PanelPage({ routeSearch, onIntentHandled }: PanelPageProps) {
                     />
                   </div>
                 </div>
-                <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => closeRuleForm()} disabled={formBusy}>
-                    取消
-                  </Button>
-                  <Button onClick={() => void submitRuleForm()} disabled={formBusy}>
-                    {editingRuleId ? (formBusy ? "保存中…" : "保存") : formBusy ? "创建中…" : "创建规则"}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </>
-        )}
-
-        <main className="min-h-0 flex-1 overflow-y-auto">
-          <div className="mx-auto grid max-w-[1380px] gap-5 px-4 py-5 sm:px-5 xl:grid-cols-[minmax(0,1fr)_320px]">
-            <section className="min-w-0 space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <h2 className="text-base font-semibold tracking-[-0.015em] text-foreground">规则列表</h2>
-                  <p className="mt-0.5 text-sm text-muted-foreground">先创建规则，再按住中键或右键进行测试。</p>
-                </div>
-                <span className="rounded-full border border-border/80 bg-background/70 px-2.5 py-1 text-xs font-medium text-muted-foreground">
-                  {filteredRules.length} 条规则
-                </span>
               </div>
-
-              {rulesError && (
-                <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                  {rulesError}
-                </div>
-              )}
-
-              {rulesLoading ? (
-                <div className="rounded-[20px] border border-border/75 bg-[rgba(255,255,255,0.82)] px-4 py-8 text-sm text-muted-foreground shadow-[0_1px_0_rgba(255,255,255,0.72),0_10px_24px_rgba(36,48,83,0.04)]">
-                  正在加载规则…
-                </div>
-              ) : filteredRules.length === 0 ? (
-                <div className="rounded-[20px] border border-border/75 bg-[rgba(255,255,255,0.82)] px-5 py-6 shadow-[0_1px_0_rgba(255,255,255,0.72),0_10px_24px_rgba(36,48,83,0.04)]">
-                  <p className="text-base font-semibold text-foreground">先创建第一条规则</p>
-                  <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                    这页的流程很简单：1. 新建规则；2. 录入快捷键；3. 按住中键或右键测试手势。
-                  </p>
-                  <div className="mt-4 grid gap-2 text-sm text-foreground/80 sm:grid-cols-3">
-                    <div className="rounded-xl border border-border/70 bg-background/65 px-3 py-3">1. 选择触发按键和滑动方向</div>
-                    <div className="rounded-xl border border-border/70 bg-background/65 px-3 py-3">2. 录入需要执行的快捷键</div>
-                    <div className="rounded-xl border border-border/70 bg-background/65 px-3 py-3">3. 创建后在桌面上直接测试</div>
-                  </div>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {filteredRules.map((rule) => {
-                    const action = rule.actionHotkey ? undefined : actionById[rule.actionType];
-                    const triggerLabel = formatGestureTriggerLabel(rule.gesture);
-                    const hotkeyLabels = rule.actionHotkey
-                      ? hotkeySnapshotToKeyLabels(rule.actionHotkey)
-                      : action
-                        ? formatHotkey(action)
-                            .split(/\s+\+\s+/)
-                            .map((s) => s.trim())
-                        : [];
-                    const busy = savingRuleId === rule.id;
-                    return (
-                      <GestureRuleCard
-                        key={rule.id}
-                        rule={rule}
-                        action={action}
-                        triggerLabel={triggerLabel}
-                        hotkeyLabels={hotkeyLabels}
-                        busy={busy}
-                        onToggleEnabled={(enabled) => void saveRule({ ...rule, enabled })}
-                        onEdit={() => openRuleFormEdit(rule)}
-                        onDelete={() => void removeRule(rule.id)}
-                      />
-                    );
-                  })}
-                </div>
-              )}
-            </section>
-
-            <aside className="space-y-4 xl:sticky xl:top-5 xl:self-start">
-              <ResultSection lastResult={lastResult} />
-              {screens.length > 0 && <ScreenMap screens={screens} activeIndex={activeScreenIndex} />}
-            </aside>
+            </div>
+            <SheetFooter className="border-t border-border/70 pt-3">
+              <div className="flex w-full justify-end gap-2">
+                <Button variant="outline" onClick={() => closeRuleForm()} disabled={formBusy}>
+                  取消
+                </Button>
+                <Button onClick={() => void submitRuleForm()} disabled={formBusy}>
+                  {editingRuleId ? (formBusy ? "保存中…" : "保存") : formBusy ? "创建中…" : "创建规则"}
+                </Button>
+              </div>
+            </SheetFooter>
           </div>
-        </main>
+        </SheetContent>
+      </Sheet>
+
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <section className="min-w-0 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-base font-semibold tracking-[-0.015em] text-foreground">规则列表</h2>
+              <p className="mt-0.5 text-sm text-muted-foreground">先创建规则，再按住中键或右键进行测试。</p>
+            </div>
+            <span className="rounded-full border border-border/80 bg-background/70 px-2.5 py-1 text-xs font-medium text-muted-foreground">
+              {filteredRules.length} 条规则
+            </span>
+          </div>
+
+          {rulesError && (
+            <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              {rulesError}
+            </div>
+          )}
+
+          {rulesLoading ? (
+            <div className="rounded-[20px] border border-border/75 bg-[rgba(255,255,255,0.82)] px-4 py-8 text-sm text-muted-foreground shadow-[0_1px_0_rgba(255,255,255,0.72),0_10px_24px_rgba(36,48,83,0.04)]">
+              正在加载规则…
+            </div>
+          ) : filteredRules.length === 0 ? (
+            <div className="rounded-[20px] border border-border/75 bg-[rgba(255,255,255,0.82)] px-5 py-6 shadow-[0_1px_0_rgba(255,255,255,0.72),0_10px_24px_rgba(36,48,83,0.04)]">
+              <p className="text-base font-semibold text-foreground">先创建第一条规则</p>
+              <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                这页的流程很简单：1. 新建规则；2. 录入快捷键；3. 按住中键或右键测试手势。
+              </p>
+              <div className="mt-4 grid gap-2 text-sm text-foreground/80 sm:grid-cols-3">
+                <div className="rounded-xl border border-border/70 bg-background/65 px-3 py-3">1. 选择触发按键和滑动方向</div>
+                <div className="rounded-xl border border-border/70 bg-background/65 px-3 py-3">2. 录入需要执行的快捷键</div>
+                <div className="rounded-xl border border-border/70 bg-background/65 px-3 py-3">3. 创建后在桌面上直接测试</div>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {filteredRules.map((rule) => {
+                const action = rule.actionHotkey ? undefined : actionById[rule.actionType];
+                const triggerLabel = formatGestureTriggerLabel(rule.gesture);
+                const hotkeyLabels = rule.actionHotkey
+                  ? hotkeySnapshotToKeyLabels(rule.actionHotkey)
+                  : action
+                    ? formatHotkey(action)
+                        .split(/\s+\+\s+/)
+                        .map((s) => s.trim())
+                    : [];
+                const busy = savingRuleId === rule.id;
+                return (
+                  <GestureRuleCard
+                    key={rule.id}
+                    rule={rule}
+                    action={action}
+                    triggerLabel={triggerLabel}
+                    hotkeyLabels={hotkeyLabels}
+                    busy={busy}
+                    onToggleEnabled={(enabled) => void saveRule({ ...rule, enabled })}
+                    onEdit={() => openRuleFormEdit(rule)}
+                    onDelete={() => void removeRule(rule.id)}
+                  />
+                );
+              })}
+            </div>
+          )}
+        </section>
       </div>
-    </div>
+    </PageLayout>
   );
 }
