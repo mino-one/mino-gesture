@@ -230,6 +230,17 @@ function printPushInstructions(tag) {
   console.log(` git add .  && git commit --amend --no-edit && git push origin ${ref} && git push origin ${tag}`);
 }
 
+/** 打 tag 后提醒维护 CHANGELOG，避免发版与文档脱节（约定见 docs/CHANGELOG_GENERATION.md） */
+function printChangelogReminder(semver) {
+  console.log("\nCHANGELOG 提醒：");
+  console.log(
+    `  在 CHANGELOG.md 顶部为本次发版新增 ## [${semver}] …（与 tag v${semver} 一致）。`,
+  );
+  console.log(
+    "  若之后在未 bump 版本前整理新改动，新节应为下一 SemVer，勿往已发版节追加——见 docs/CHANGELOG_GENERATION.md「版本节与待发版内容」。",
+  );
+}
+
 /** 在当前 HEAD 上创建 v<version>（需三处版本文件已与 HEAD 一致） */
 function createReleaseTag() {
   assertGitRepo();
@@ -247,10 +258,11 @@ function createReleaseTag() {
   createAnnotatedTag(tag);
 
   console.log(`已创建 tag ${tag}（指向当前 HEAD）`);
+  printChangelogReminder(ver);
   printPushInstructions(tag);
 }
 
-/** 自增版本 → 仅提交三处版本文件 → 打 tag；CHANGELOG 等请在本命令前后单独提交 */
+/** 自增版本 → 仅提交三处版本文件 → 打 tag；CHANGELOG 见打 tag 后的控制台提醒与 docs/CHANGELOG_GENERATION.md */
 function releaseWithBump(kind) {
   assertGitRepo();
 
@@ -275,6 +287,7 @@ function releaseWithBump(kind) {
   createAnnotatedTag(tag);
 
   console.log(`\n已完成：${tag}（版本已提交并已打 tag）`);
+  printChangelogReminder(ver);
   printPushInstructions(tag);
 }
 

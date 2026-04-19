@@ -9,7 +9,9 @@ type HomePageProps = {
 export function HomePage({ onOpenPanel, onOpenPanelCreate }: HomePageProps) {
   const header = (
     <div className="flex items-center justify-between border-b border-transparent py-4">
-      <p className="text-sm font-medium tracking-[-0.01em] text-foreground">mino-gesture</p>
+      <p className="text-sm font-medium tracking-[-0.01em] text-foreground">
+        mino-gesture
+      </p>
       <p className="text-xs text-muted-foreground">macOS 手势控制中心</p>
     </div>
   );
@@ -23,22 +25,30 @@ export function HomePage({ onOpenPanel, onOpenPanelCreate }: HomePageProps) {
 
   return (
     <PageLayout
-      header={header}
+      // header={header}
       footer={footer}
       containerSize="md"
       contentClassName="flex items-center px-6 py-10"
     >
       <div className="mx-auto flex w-full max-w-[720px] flex-col items-center justify-center gap-8 text-center">
         <div className="space-y-3">
-          <h1 className="text-4xl font-semibold tracking-tight text-foreground">Welcome to Gesture Control</h1>
-          <p className="text-sm text-muted-foreground">配置你的首个鼠标手势流程，快速进入控制中心。</p>
+          <h1 className="text-4xl font-semibold tracking-tight text-foreground">
+            Welcome to Gesture Control
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            配置你的首个鼠标手势流程，快速进入控制中心。
+          </p>
         </div>
         <div className="w-full max-w-sm space-y-3">
           <Button className="h-12 w-full text-base" onClick={onOpenPanel}>
-            Get Started with a Demo Gesture
+            开始使用示例手势
           </Button>
-          <Button variant="secondary" className="h-12 w-full text-base" onClick={onOpenPanelCreate}>
-            Create a New Gesture
+          <Button
+            variant="secondary"
+            className="h-12 w-full text-base"
+            onClick={onOpenPanelCreate}
+          >
+            创建手势
           </Button>
         </div>
       </div>

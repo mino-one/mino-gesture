@@ -29,13 +29,13 @@ export function ChangelogSection() {
 
   return (
     <div className="space-y-3 text-[13px] leading-[1.45] text-muted-foreground">
-      {versionMismatch ? (
+      {/* {versionMismatch ? (
         <p className="rounded-md border border-amber-500/35 bg-amber-500/10 px-2.5 py-1.5 text-[12px] leading-snug text-amber-950 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-100">
           文档最新版本为 v{versionMismatch.md}，与当前应用{" "}
           <span className="font-mono">package.json</span> 的 v
           {versionMismatch.pkg} 不一致，请核对后更新其一。
         </p>
-      ) : null}
+      ) : null} */}
 
       {releases.map((release) => (
         <section key={release.version} className="space-y-1.5">
