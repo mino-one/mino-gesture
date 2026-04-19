@@ -44,9 +44,9 @@ jobs:
           add-job-id-key: false
           cache-bin: false
 
-      # 必须与发版一致使用 release，否则只会预热 debug 产物，tag 构建几乎仍从零编 release 依赖
-      - name: Cargo check (release, macOS targets)
+      # 使用 build 而非 check：check 对依赖常只生成 rmeta，发版时 cargo build/tauri 仍可能整段重编依赖
+      - name: Cargo build (release, macOS targets)
         working-directory: src-tauri
         run: |
-          cargo check --locked -q --release --target aarch64-apple-darwin
-          cargo check --locked -q --release --target x86_64-apple-darwin
+          cargo build --locked -q --release --target aarch64-apple-darwin
+          cargo build --locked -q --release --target x86_64-apple-darwin

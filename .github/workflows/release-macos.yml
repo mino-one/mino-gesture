@@ -25,15 +25,7 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: lts/*
-          cache: pnpm
-
+      # Rust / rust-cache 放在 Node 之前：与预热 job 步骤顺序一致，避免无关 env 参与缓存 key；先恢复大缓存再装前端
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -47,6 +39,15 @@ jobs:
           shared-key: mino-gesture-macos-universal
           add-job-id-key: false
           cache-bin: false
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: pnpm
 
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
