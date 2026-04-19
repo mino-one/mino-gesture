@@ -15,13 +15,14 @@
       {
         "label": "main",
         "title": "",
-        "backgroundColor": "#EEF1F7",
+        "backgroundColor": "#fff",
         "titleBarStyle": "Transparent",
         "hiddenTitle": true,
         "width": 720,
         "minWidth": 720,
         "maxWidth": 720,
-        "height": 720,
+        "minHeight": 720,
+        "maxHeight": 900,
         "resizable": false
       },
       {
