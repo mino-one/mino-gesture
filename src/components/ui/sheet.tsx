@@ -13,7 +13,7 @@ const SheetOverlay = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Overlay
     ref={ref}
-    className={cn("fixed inset-0 z-50 bg-black/18 backdrop-blur-[3px]", className)}
+    className={cn("fixed inset-0 z-50 bg-slate-950/24", className)}
     {...props}
   />
 ));
@@ -21,13 +21,13 @@ SheetOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
 const sheetVariants = {
   right:
-    "fixed inset-y-0 right-0 z-50 h-full w-full border-l border-border/70 bg-background/96 shadow-[0_18px_46px_rgba(36,48,83,0.16)] backdrop-blur-[14px] sm:max-w-[440px]",
+    "fixed inset-y-0 right-0 z-50 h-full w-full border-l border-border bg-background shadow-[0_18px_46px_rgba(36,48,83,0.16)] sm:max-w-[440px]",
   left:
-    "fixed inset-y-0 left-0 z-50 h-full w-full border-r border-border/70 bg-background/96 shadow-[0_18px_46px_rgba(36,48,83,0.16)] backdrop-blur-[14px] sm:max-w-[440px]",
+    "fixed inset-y-0 left-0 z-50 h-full w-full border-r border-border bg-background shadow-[0_18px_46px_rgba(36,48,83,0.16)] sm:max-w-[440px]",
   top:
-    "fixed inset-x-0 top-0 z-50 border-b border-border/70 bg-background/96 shadow-[0_18px_46px_rgba(36,48,83,0.16)] backdrop-blur-[14px]",
+    "fixed inset-x-0 top-0 z-50 border-b border-border bg-background shadow-[0_18px_46px_rgba(36,48,83,0.16)]",
   bottom:
-    "fixed inset-x-0 bottom-0 z-50 border-t border-border/70 bg-background/96 shadow-[0_18px_46px_rgba(36,48,83,0.16)] backdrop-blur-[14px]",
+    "fixed inset-x-0 bottom-0 z-50 border-t border-border bg-background shadow-[0_18px_46px_rgba(36,48,83,0.16)]",
 } as const;
 
 type SheetContentProps = React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {

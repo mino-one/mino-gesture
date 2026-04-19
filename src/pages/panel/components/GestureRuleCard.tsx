@@ -57,7 +57,7 @@ export function GestureRuleCard({
               {arrows || "·"}
             </div>
             <div className="min-w-0 pt-0.5">
-              <h3 className="line-clamp-2 text-[0.9rem] font-semibold leading-[1.2] tracking-[-0.015em] text-foreground">
+              <h3 className="line-clamp-2 text-[0.9rem] font-semibold tracking-[-0.015em] text-foreground">
                 {title}
               </h3>
               <p className="mt-0.5 text-[0.74rem] font-medium text-[hsl(var(--foreground)/0.58)]">
