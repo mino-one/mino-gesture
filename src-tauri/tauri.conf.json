@@ -18,12 +18,11 @@
         "backgroundColor": "#fff",
         "titleBarStyle": "Transparent",
         "hiddenTitle": true,
-        "width": 720,
-        "minWidth": 720,
-        "maxWidth": 720,
+        "width": 1180,
+        "height": 820,
+        "minWidth": 880,
         "minHeight": 720,
-        "maxHeight": 900,
-        "resizable": false
+        "resizable": true
       },
       {
         "label": "overlay",

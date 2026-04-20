@@ -37,6 +37,10 @@ export function App() {
     <PanelPage
       routeSearch={routeState.search}
       onIntentHandled={handleIntentHandled}
+      onBackHome={() => {
+        window.history.pushState({}, "", "/");
+        setRouteState(readRouteState());
+      }}
     />
   );
 }

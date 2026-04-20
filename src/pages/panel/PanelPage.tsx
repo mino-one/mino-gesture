@@ -16,7 +16,7 @@ import { ResultSection } from "./components/ResultSection";
 import { ScreenMap } from "./components/ScreenMap";
 import { SettingsSheet } from "./components/SettingsSheet";
 import { PageLayout } from "../../components/layout/PageLayout";
-import { IconPlus, IconSettings } from "../../components/icons";
+import { IconHome, IconPlus, IconSettings } from "../../components/icons";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
@@ -27,9 +27,14 @@ import { useGesturePanelState } from "./useGesturePanelState";
 type PanelPageProps = {
   routeSearch: string;
   onIntentHandled: () => void;
+  onBackHome: () => void;
 };
 
-export function PanelPage({ routeSearch, onIntentHandled }: PanelPageProps) {
+export function PanelPage({
+  routeSearch,
+  onIntentHandled,
+  onBackHome,
+}: PanelPageProps) {
   const [logOverlayOpen, setLogOverlayOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -64,6 +69,16 @@ export function PanelPage({ routeSearch, onIntentHandled }: PanelPageProps) {
     <div className="flex flex-col gap-3 py-3 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 shrink-0 rounded-full text-muted-foreground hover:text-foreground"
+            onClick={onBackHome}
+            aria-label="返回主页"
+          >
+            <IconHome className="h-4 w-4" />
+          </Button>
           <h1 className="text-lg font-semibold tracking-[-0.02em] text-foreground">手势规则</h1>
           <button
             type="button"

@@ -1,4 +1,5 @@
 export {
+  House as IconHome,
   Pencil as IconPencil,
   Trash2 as IconTrash,
   ScrollText as IconScrollText,
