@@ -5,6 +5,18 @@
 
 # 更新日志
 
+## [0.1.5] - 2026-04-21
+
+### 功能
+
+- 首次使用流程收拢：首页改为更清晰的两条开始路径，进入后默认回到规则面板。
+- 新增关闭窗口行为设置，可选择最小化到托盘或直接退出，并支持从托盘重新打开主窗口。
+
+### 修复
+
+- 修复主窗口关闭后容易误以为应用已经退出的问题。
+- 修复部分窄屏场景下设置面板与规则编辑界面的布局问题。
+
 ## [0.1.4] - 2026-04-19
 
 ### 功能
@@ -57,6 +69,7 @@
 
 - 无。
 
+[0.1.5]: https://github.com/Asplitline/mino-gesture/releases/tag/v0.1.5
 [0.1.4]: https://github.com/Asplitline/mino-gesture/releases/tag/v0.1.4
 [0.1.3]: https://github.com/Asplitline/mino-gesture/releases/tag/v0.1.3
 [0.1.2]: https://github.com/Asplitline/mino-gesture/releases/tag/v0.1.2
