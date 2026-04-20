@@ -53,6 +53,14 @@ pub struct LaunchAtLoginResponse {
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct CloseBehaviorResponse {
+    pub minimize_to_tray_on_close: bool,
+    pub show_close_to_tray_hint: bool,
+    pub message: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct UpdateStatusResponse {
     pub auto_update_enabled: bool,
     pub message: String,
@@ -76,6 +84,7 @@ pub struct SettingsOverviewResponse {
     pub config_path: String,
     pub permissions: PermissionStatusResponse,
     pub launch_at_login: LaunchAtLoginResponse,
+    pub close_behavior: CloseBehaviorResponse,
     pub updates: UpdateStatusResponse,
     pub about: AboutResponse,
 }
@@ -235,7 +244,12 @@ fn launch_at_login_status(app: &AppHandle) -> LaunchAtLoginResponse {
     }
 }
 
-fn settings_overview(app: &AppHandle, config_path: String) -> SettingsOverviewResponse {
+fn settings_overview(
+    app: &AppHandle,
+    config_path: String,
+    minimize_to_tray_on_close: bool,
+    show_close_to_tray_hint: bool,
+) -> SettingsOverviewResponse {
     let package = app.package_info();
     SettingsOverviewResponse {
         app_name: package.name.clone(),
@@ -245,6 +259,17 @@ fn settings_overview(app: &AppHandle, config_path: String) -> SettingsOverviewRe
         config_path,
         permissions: detect_permissions(),
         launch_at_login: launch_at_login_status(app),
+        close_behavior: CloseBehaviorResponse {
+            minimize_to_tray_on_close,
+            show_close_to_tray_hint,
+            message: if minimize_to_tray_on_close {
+                "关闭主窗口时会最小化到托盘。首次关闭会记住你的选择，后续可在这里修改。"
+                    .to_string()
+            } else {
+                "关闭主窗口时会直接退出应用。首次关闭会记住你的选择，后续可在这里修改。"
+                    .to_string()
+            },
+        },
         updates: UpdateStatusResponse {
             auto_update_enabled: false,
             message: "当前版本未接入内置自动更新，可通过 GitHub Releases 手动安装新版本。".to_string(),
@@ -287,6 +312,8 @@ pub fn get_settings_overview(
     Ok(settings_overview(
         &app,
         guard.config.path().display().to_string(),
+        guard.config.value().minimize_to_tray_on_close,
+        guard.config.value().show_close_to_tray_hint,
     ))
 }
 
@@ -432,6 +459,53 @@ pub fn set_launch_at_login(
     Ok(settings_overview(
         &app,
         guard.config.path().display().to_string(),
+        guard.config.value().minimize_to_tray_on_close,
+        guard.config.value().show_close_to_tray_hint,
+    ))
+}
+
+#[tauri::command]
+pub fn set_minimize_to_tray_on_close(
+    enabled: bool,
+    app: AppHandle,
+    state: State<'_, Arc<Mutex<AppState>>>,
+) -> Result<SettingsOverviewResponse, String> {
+    let mut guard = state.lock().map_err(|e| e.to_string())?;
+    guard.config.set_minimize_to_tray_on_close(enabled);
+    guard.config.save().map_err(|e| e.to_string())?;
+    Ok(settings_overview(
+        &app,
+        guard.config.path().display().to_string(),
+        guard.config.value().minimize_to_tray_on_close,
+        guard.config.value().show_close_to_tray_hint,
+    ))
+}
+
+#[tauri::command]
+pub fn dismiss_close_to_tray_hint(
+    state: State<'_, Arc<Mutex<AppState>>>,
+) -> Result<(), String> {
+    let mut guard = state.lock().map_err(|e| e.to_string())?;
+    guard.config.dismiss_close_to_tray_hint();
+    guard.config.save().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn remember_close_behavior_choice(
+    minimize_to_tray_on_close: bool,
+    app: AppHandle,
+    state: State<'_, Arc<Mutex<AppState>>>,
+) -> Result<SettingsOverviewResponse, String> {
+    let mut guard = state.lock().map_err(|e| e.to_string())?;
+    guard
+        .config
+        .remember_close_behavior_choice(minimize_to_tray_on_close);
+    guard.config.save().map_err(|e| e.to_string())?;
+    Ok(settings_overview(
+        &app,
+        guard.config.path().display().to_string(),
+        guard.config.value().minimize_to_tray_on_close,
+        guard.config.value().show_close_to_tray_hint,
     ))
 }
 

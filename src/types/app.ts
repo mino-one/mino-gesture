@@ -87,6 +87,11 @@ export type SettingsOverview = {
     enabled: boolean;
     message: string;
   };
+  closeBehavior: {
+    minimizeToTrayOnClose: boolean;
+    showCloseToTrayHint: boolean;
+    message: string;
+  };
   updates: {
     autoUpdateEnabled: boolean;
     message: string;

@@ -17,7 +17,7 @@ use crate::platform::input::InputEngine;
 use crate::platform::{mouse_listener, tray};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
-use tauri::Manager;
+use tauri::{Emitter, Manager, WindowEvent};
 
 fn app_config_dir(handle: &tauri::AppHandle) -> anyhow::Result<PathBuf> {
     Ok(handle.path().app_config_dir()?)
@@ -71,6 +71,37 @@ pub fn run() {
             tray::setup(app.handle())?;
             Ok(())
         })
+        .on_window_event(|window, event| {
+            if window.label() != "main" {
+                return;
+            }
+
+            if let WindowEvent::CloseRequested { api, .. } = event {
+                api.prevent_close();
+                let state = window.state::<Arc<Mutex<AppState>>>();
+                let (minimize_to_tray_on_close, show_close_to_tray_hint) = state
+                    .lock()
+                    .map(|guard| {
+                        (
+                            guard.config.value().minimize_to_tray_on_close,
+                            guard.config.value().show_close_to_tray_hint,
+                        )
+                    })
+                    .unwrap_or((true, false));
+
+                if !minimize_to_tray_on_close {
+                    window.app_handle().exit(0);
+                    return;
+                }
+
+                if show_close_to_tray_hint {
+                    let _ = window.app_handle().emit("close-to-tray-hint-requested", ());
+                    return;
+                }
+
+                let _ = window.hide();
+            }
+        })
         .invoke_handler(tauri::generate_handler![
             commands::get_status,
             commands::get_settings_overview,
@@ -81,6 +112,9 @@ pub fn run() {
             commands::delete_rule,
             commands::reset_rules,
             commands::set_launch_at_login,
+            commands::set_minimize_to_tray_on_close,
+            commands::dismiss_close_to_tray_hint,
+            commands::remember_close_behavior_choice,
             commands::open_settings_target,
             commands::open_external,
             commands::set_enabled,

@@ -45,9 +45,8 @@ export function SettingsSheet({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
-        side="right"
-        size="fullscreen"
-        className="flex min-h-0 flex-col gap-0 bg-card p-0"
+        side="center"
+        className="flex h-[min(820px,calc(100vh-1.5rem))] min-h-0 flex-col gap-0 bg-card p-0"
       >
         <SheetHeader className="border-b border-border/70">
           <div className="pr-8">

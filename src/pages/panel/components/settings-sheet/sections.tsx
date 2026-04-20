@@ -35,12 +35,12 @@ export const SETTINGS_SECTIONS: SettingsSectionDefinition[] = [
   },
   {
     id: "data",
-    label: "数据",
-    description: "恢复示例数据",
+    label: "重置",
+    description: "重置规则数据",
     icon: IconSettings,
-    eyebrow: "Data",
-    title: "示例数据",
-    panelDescription: "恢复应用内置规则，快速回到初始可用状态。",
+    eyebrow: "Reset",
+    title: "重置规则数据",
+    panelDescription: "重置当前规则数据，恢复到初始内置内容。",
     render: (props) => <DataSection {...props} />,
   },
   {

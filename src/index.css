@@ -67,12 +67,17 @@
 
 @layer components {
   .app-page-surface {
-    background: linear-gradient(180deg, hsl(var(--surface-primary)) 0%, hsl(var(--surface-secondary)) 100%);
+    background: linear-gradient(180deg, hsl(var(--surface-primary)) 0%, hsl(var(--surface-secondary) / 0.82) 100%);
   }
 
   .app-chrome-surface {
-    background: hsl(var(--surface-card) / 0.8);
-    backdrop-filter: blur(14px);
+    background:
+      linear-gradient(
+        180deg,
+        hsl(var(--surface-primary) / 0.74),
+        hsl(var(--surface-secondary) / 0.62)
+      );
+    backdrop-filter: blur(16px) saturate(1.08);
   }
 
   .app-panel-surface {
@@ -111,34 +116,34 @@
   .app-home-hero {
     position: relative;
     overflow: hidden;
-    border: 1px solid hsl(var(--border) / 0.72);
+    border: 1px solid hsl(var(--border) / 0.68);
     background:
-      radial-gradient(circle at top left, hsl(var(--brand-primary) / 0.16), transparent 34%),
-      radial-gradient(circle at 85% 20%, hsl(var(--brand-secondary) / 0.12), transparent 28%),
-      linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(247, 249, 255, 0.7));
+      radial-gradient(circle at top left, hsl(var(--brand-primary) / 0.1), transparent 34%),
+      radial-gradient(circle at 85% 20%, hsl(var(--brand-secondary) / 0.07), transparent 28%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.8), rgba(246, 248, 253, 0.72));
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.86),
-      0 24px 60px rgba(44, 56, 94, 0.08);
+      inset 0 1px 0 rgba(255, 255, 255, 0.84),
+      0 18px 44px rgba(44, 56, 94, 0.06);
   }
 
   .app-home-card {
-    border: 1px solid hsl(var(--border) / 0.74);
+    border: 1px solid hsl(var(--border) / 0.68);
     background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(247, 249, 255, 0.76));
+      linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(247, 249, 253, 0.78));
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.84),
-      0 18px 40px rgba(36, 48, 83, 0.06);
+      inset 0 1px 0 rgba(255, 255, 255, 0.82),
+      0 14px 32px rgba(36, 48, 83, 0.045);
   }
 
   .app-home-card-primary {
     background:
-      radial-gradient(circle at top right, hsl(var(--brand-primary) / 0.18), transparent 34%),
-      linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(243, 246, 255, 0.84));
+      radial-gradient(circle at top right, hsl(var(--brand-primary) / 0.1), transparent 34%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(244, 247, 252, 0.82));
   }
 
   .app-home-step {
-    border: 1px solid hsl(var(--border) / 0.72);
-    background: rgba(255, 255, 255, 0.62);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78);
+    border: 1px solid hsl(var(--border) / 0.62);
+    background: rgba(255, 255, 255, 0.54);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
   }
 }

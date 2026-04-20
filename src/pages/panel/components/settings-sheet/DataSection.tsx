@@ -7,9 +7,9 @@ export function DataSection({
 }: SettingsSectionContentProps) {
   return (
     <div className="app-panel-surface rounded-[24px] p-5">
-      <p className="text-sm font-semibold text-foreground">恢复示例规则</p>
+      <p className="text-sm font-semibold text-foreground">重置规则数据</p>
       <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-        这会覆盖当前规则列表，但不会影响权限、自动启动或应用本身的其他设置。
+        这会重置当前规则数据，恢复到初始内置内容，但不会影响权限、自动启动或应用本身的其他设置。
       </p>
       <div className="mt-4">
         <Button
@@ -17,7 +17,7 @@ export function DataSection({
           onClick={() => void onResetRules()}
           disabled={resettingRules}
         >
-          {resettingRules ? "恢复中…" : "恢复示例数据"}
+          {resettingRules ? "重置中…" : "重置规则数据"}
         </Button>
       </div>
     </div>

@@ -65,30 +65,39 @@ export function PanelPage({
     saveRule,
   } = useGesturePanelState({ routeSearch, onIntentHandled });
 
+  const handleGoRulesHome = () => {
+    setLogOverlayOpen(false);
+    setSettingsOpen(false);
+    closeRuleForm();
+    onBackHome();
+  };
+
   const header = (
     <div className="flex flex-col gap-3 py-3 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0">
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
           <Button
             type="button"
             variant="ghost"
             size="icon"
             className="h-8 w-8 shrink-0 rounded-full text-muted-foreground hover:text-foreground"
-            onClick={onBackHome}
-            aria-label="返回主页"
+            onClick={handleGoRulesHome}
+            aria-label="返回规则首页"
           >
             <IconHome className="h-4 w-4" />
           </Button>
-          <h1 className="text-lg font-semibold tracking-[-0.02em] text-foreground">手势规则</h1>
+          <h1 className="text-lg font-semibold tracking-[-0.02em] text-foreground">
+            手势规则
+          </h1>
           <button
             type="button"
-            className="app-panel-subtle rounded-full px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-border hover:bg-accent hover:text-accent-foreground"
+            className="app-panel-subtle shrink-0 rounded-full px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-border hover:bg-accent hover:text-accent-foreground"
           >
             {filteredRules.length} 条规则
           </button>
           <button
             type="button"
-            className="app-panel-subtle rounded-full px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-border hover:bg-accent hover:text-accent-foreground"
+            className="app-panel-subtle shrink-0 rounded-full px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:border-border hover:bg-accent hover:text-accent-foreground"
             onClick={() => setLogOverlayOpen(true)}
             aria-label={`查看识别日志，${gestureLog.length} 条`}
             aria-haspopup="dialog"
@@ -97,12 +106,14 @@ export function PanelPage({
             {gestureLog.length} 条日志
           </button>
         </div>
-        <p className="mt-1 text-sm text-muted-foreground">管理触发方式、快捷键映射和最近一次识别结果。</p>
+        <p className="mt-1 max-w-[52ch] text-sm text-muted-foreground">
+          管理触发方式、快捷键映射和最近一次识别结果。
+        </p>
       </div>
-      <div className="flex flex-wrap items-center justify-end gap-2">
+      <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
         <Button
           size="sm"
-          className="h-9 gap-1.5 px-3"
+          className="h-9 flex-1 gap-1.5 px-3 sm:flex-none"
           onClick={() => {
             if (ruleFormOpen && editingRuleId === null) {
               closeRuleForm();
@@ -122,7 +133,7 @@ export function PanelPage({
           type="button"
           variant="ghost"
           size="sm"
-          className="h-9 gap-1.5 px-2.5 text-muted-foreground hover:text-foreground"
+          className="h-9 flex-1 gap-1.5 px-2.5 text-muted-foreground hover:text-foreground sm:flex-none"
           onClick={() => setSettingsOpen(true)}
           aria-label="打开设置"
           aria-haspopup="dialog"
@@ -136,7 +147,7 @@ export function PanelPage({
   );
 
   const footer = (
-    <div className="flex flex-wrap items-center justify-between gap-2 py-2.5 text-xs text-muted-foreground">
+    <div className="flex flex-col gap-2 py-2.5 text-xs text-muted-foreground sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
         <span>{filteredRules.length} 条规则</span>
         <span>{gestureLog.length} 条识别记录</span>
@@ -161,8 +172,8 @@ export function PanelPage({
       stickyHeader
       stickyFooter
       stickySidebar
-      contentClassName="overflow-hidden"
-      contentContainerClassName="py-5 xl:grid-cols-[minmax(0,1fr)_320px]"
+      contentClassName="overflow-x-hidden"
+      contentContainerClassName="py-4 lg:py-5 xl:grid-cols-[minmax(0,1fr)_320px]"
       headerClassName="app-chrome-surface border-b border-border/65"
       footerClassName="app-chrome-surface border-t border-border/65"
     >
@@ -182,7 +193,7 @@ export function PanelPage({
       <Sheet open={ruleFormOpen} onOpenChange={(open) => !open && closeRuleForm()}>
         <SheetContent
           side="right"
-          className="flex min-h-0 h-auto max-h-[calc(100vh-1.5rem)] flex-col overflow-hidden rounded-l-[24px] bg-card p-0 sm:top-3 sm:bottom-3 sm:max-w-[440px]"
+          className="flex min-h-0 h-full max-h-none flex-col overflow-hidden rounded-none bg-card p-0 sm:top-3 sm:bottom-3 sm:h-auto sm:max-h-[calc(100vh-1.5rem)] sm:max-w-[440px] sm:rounded-l-[24px]"
         >
           <SheetHeader className="border-b border-border/70">
             <SheetTitle>{editingRuleId ? "编辑规则" : "新建规则"}</SheetTitle>
@@ -190,7 +201,7 @@ export function PanelPage({
           </SheetHeader>
           <SheetBody>
             <div className="space-y-3.5">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="space-y-1">
                   <p className="text-xs font-medium text-muted-foreground">名称</p>
                   <Input value={draft.name} onChange={(e) => setDraft((prev) => ({ ...prev, name: e.target.value }))} />
@@ -238,11 +249,20 @@ export function PanelPage({
             </div>
           </SheetBody>
           <SheetFooter className="mt-1 border-t border-border/70">
-            <div className="flex w-full flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2">
-              <Button variant="outline" onClick={() => closeRuleForm()} disabled={formBusy}>
+            <div className="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-0 sm:space-x-2">
+              <Button
+                variant="outline"
+                className="w-full sm:w-auto"
+                onClick={() => closeRuleForm()}
+                disabled={formBusy}
+              >
                 取消
               </Button>
-              <Button onClick={() => void submitRuleForm()} disabled={formBusy}>
+              <Button
+                className="w-full sm:w-auto"
+                onClick={() => void submitRuleForm()}
+                disabled={formBusy}
+              >
                 {editingRuleId ? (formBusy ? "保存中…" : "保存") : formBusy ? "创建中…" : "创建规则"}
               </Button>
             </div>
@@ -265,19 +285,19 @@ export function PanelPage({
           ) : filteredRules.length === 0 ? (
             <Card className="app-panel-surface rounded-[20px]">
               <CardContent className="px-5 py-6 pt-6">
-              <p className="text-base font-semibold text-foreground">先创建第一条规则</p>
-              <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                这页的流程很简单：1. 新建规则；2. 录入快捷键；3. 按住中键或右键测试手势。
-              </p>
-              <div className="mt-4 grid gap-2 text-sm text-foreground/80 sm:grid-cols-3">
-                <div className="app-panel-subtle rounded-xl px-3 py-3">1. 选择触发按键和滑动方向</div>
-                <div className="app-panel-subtle rounded-xl px-3 py-3">2. 录入需要执行的快捷键</div>
-                <div className="app-panel-subtle rounded-xl px-3 py-3">3. 创建后在桌面上直接测试</div>
-              </div>
+                <p className="text-base font-semibold text-foreground">先创建第一条规则</p>
+                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                  这页的流程很简单：1. 新建规则；2. 录入快捷键；3. 按住中键或右键测试手势。
+                </p>
+                <div className="mt-4 grid gap-2 text-sm text-foreground/80 lg:grid-cols-3">
+                  <div className="app-panel-subtle rounded-xl px-3 py-3">1. 选择触发按键和滑动方向</div>
+                  <div className="app-panel-subtle rounded-xl px-3 py-3">2. 录入需要执行的快捷键</div>
+                  <div className="app-panel-subtle rounded-xl px-3 py-3">3. 创建后在桌面上直接测试</div>
+                </div>
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
               {filteredRules.map((rule) => {
                 const action = rule.actionHotkey ? undefined : actionById[rule.actionType];
                 const triggerLabel = formatGestureTriggerLabel(rule.gesture);

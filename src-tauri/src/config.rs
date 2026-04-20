@@ -2,6 +2,14 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
 
+fn default_minimize_to_tray_on_close() -> bool {
+    true
+}
+
+fn default_show_close_to_tray_hint() -> bool {
+    true
+}
+
 fn builtin_actions() -> Vec<ActionConfig> {
     vec![
         ActionConfig {
@@ -127,6 +135,10 @@ fn ensure_builtin_actions(config: &mut AppConfig) -> bool {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppConfig {
     pub enabled: bool,
+    #[serde(default = "default_minimize_to_tray_on_close")]
+    pub minimize_to_tray_on_close: bool,
+    #[serde(default = "default_show_close_to_tray_hint")]
+    pub show_close_to_tray_hint: bool,
     #[serde(default = "builtin_actions")]
     pub actions: Vec<ActionConfig>,
     #[serde(default)]
@@ -137,6 +149,8 @@ impl Default for AppConfig {
     fn default() -> Self {
         Self {
             enabled: true,
+            minimize_to_tray_on_close: true,
+            show_close_to_tray_hint: true,
             actions: builtin_actions(),
             rules: builtin_rules(),
         }
@@ -231,6 +245,19 @@ impl ConfigStore {
 
     pub fn set_enabled(&mut self, enabled: bool) {
         self.value.enabled = enabled;
+    }
+
+    pub fn set_minimize_to_tray_on_close(&mut self, enabled: bool) {
+        self.value.minimize_to_tray_on_close = enabled;
+    }
+
+    pub fn dismiss_close_to_tray_hint(&mut self) {
+        self.value.show_close_to_tray_hint = false;
+    }
+
+    pub fn remember_close_behavior_choice(&mut self, minimize_to_tray_on_close: bool) {
+        self.value.minimize_to_tray_on_close = minimize_to_tray_on_close;
+        self.value.show_close_to_tray_hint = false;
     }
 
     pub fn rules(&self) -> &[RuleConfig] {

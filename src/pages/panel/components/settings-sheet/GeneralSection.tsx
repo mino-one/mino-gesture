@@ -8,7 +8,9 @@ export function GeneralSection({
   settings,
   loading,
   launchBusy,
+  closeBehaviorBusy,
   toggleLaunchAtLogin,
+  toggleMinimizeToTrayOnClose,
   openTarget,
 }: SettingsSectionContentProps) {
   const launchBadge = useMemo(() => {
@@ -23,6 +25,46 @@ export function GeneralSection({
 
   return (
     <div className="space-y-4">
+      <div className="app-panel-surface rounded-[24px] p-5">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-semibold text-foreground">
+                关闭时最小化到托盘
+              </p>
+              <Badge
+                variant={
+                  settings?.closeBehavior.minimizeToTrayOnClose
+                    ? "success"
+                    : "muted"
+                }
+              >
+                {settings?.closeBehavior.minimizeToTrayOnClose
+                  ? "后台运行"
+                  : "直接退出"}
+              </Badge>
+            </div>
+            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+              {settings?.closeBehavior.message ??
+                "关闭主窗口时可选择继续在托盘后台运行，或直接退出应用。"}
+            </p>
+            {settings?.closeBehavior.minimizeToTrayOnClose &&
+            settings.closeBehavior.showCloseToTrayHint ? (
+              <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                首次关闭时会额外弹出一次提示，避免误以为应用已经退出。
+              </p>
+            ) : null}
+          </div>
+          <Switch
+            checked={Boolean(settings?.closeBehavior.minimizeToTrayOnClose)}
+            onCheckedChange={(checked) =>
+              void toggleMinimizeToTrayOnClose(checked)
+            }
+            disabled={closeBehaviorBusy || loading}
+            aria-label="切换关闭时最小化到托盘"
+          />
+        </div>
+      </div>
       <div className="app-panel-surface rounded-[24px] p-5">
         <div className="flex items-center justify-between gap-4">
           <div>

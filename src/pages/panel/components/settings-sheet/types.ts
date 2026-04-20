@@ -13,8 +13,10 @@ export type SettingsState = {
   loading: boolean;
   error: string | null;
   launchBusy: boolean;
+  closeBehaviorBusy: boolean;
   refreshSettings: () => Promise<void>;
   toggleLaunchAtLogin: (checked: boolean) => Promise<void>;
+  toggleMinimizeToTrayOnClose: (checked: boolean) => Promise<void>;
   openTarget: (target: string) => Promise<void>;
   openExternal: (url: string) => Promise<void>;
 };

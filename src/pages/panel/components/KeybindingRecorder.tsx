@@ -210,7 +210,7 @@ export function KeybindingRecorder({ value, onChange, disabled }: KeybindingReco
             onBlur={onComboBlur}
           >
             {value ? (
-              <HotkeyKeycapSequence snapshot={value} />
+              <HotkeyKeycapSequence snapshot={value} size="input" />
             ) : recordingCombo ? (
               <span className="text-muted-foreground">按下完整组合键…</span>
             ) : (
@@ -321,7 +321,7 @@ export function KeybindingRecorder({ value, onChange, disabled }: KeybindingReco
                 onBlur={onMainKeyBlur}
               >
                 {preview ? (
-                  <HotkeyKeycapSequence snapshot={preview} />
+                  <HotkeyKeycapSequence snapshot={preview} size="input" />
                 ) : recordingMain ? (
                   <span className="text-muted-foreground">按下一个主键…</span>
                 ) : (

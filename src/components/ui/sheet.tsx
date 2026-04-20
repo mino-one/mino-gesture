@@ -36,6 +36,8 @@ const sheetVariants = cva(
           "inset-y-0 left-0 h-full w-3/4 border-r data-[state=closed]:slide-out-to-left-4 data-[state=open]:slide-in-from-left-4 sm:max-w-sm",
         right:
           "inset-y-0 right-0 h-full w-full border-l data-[state=closed]:slide-out-to-right-4 data-[state=open]:slide-in-from-right-4 sm:max-w-md",
+        center:
+          "left-1/2 top-1/2 w-[min(1120px,calc(100vw-1.5rem))] max-w-[1120px] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[24px] border data-[state=closed]:duration-200 data-[state=open]:duration-300",
       },
       size: {
         default: "",

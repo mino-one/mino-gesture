@@ -8,6 +8,7 @@ export function useSettingsOverview(open: boolean): SettingsState {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [launchBusy, setLaunchBusy] = useState(false);
+  const [closeBehaviorBusy, setCloseBehaviorBusy] = useState(false);
 
   const refreshSettings = useCallback(async () => {
     setLoading(true);
@@ -42,6 +43,24 @@ export function useSettingsOverview(open: boolean): SettingsState {
     }
   }, []);
 
+  const toggleMinimizeToTrayOnClose = useCallback(async (checked: boolean) => {
+    setCloseBehaviorBusy(true);
+    setError(null);
+    try {
+      const next = await invoke<SettingsOverview>(
+        "set_minimize_to_tray_on_close",
+        {
+          enabled: checked,
+        },
+      );
+      setSettings(next);
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setCloseBehaviorBusy(false);
+    }
+  }, []);
+
   const openTarget = useCallback(async (target: string) => {
     await invoke("open_settings_target", { target });
   }, []);
@@ -55,8 +74,10 @@ export function useSettingsOverview(open: boolean): SettingsState {
     loading,
     error,
     launchBusy,
+    closeBehaviorBusy,
     refreshSettings,
     toggleLaunchAtLogin,
+    toggleMinimizeToTrayOnClose,
     openTarget,
     openExternal,
   };
