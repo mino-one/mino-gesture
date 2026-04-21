@@ -8,7 +8,11 @@ import {
   formatHotkey,
 } from "../../gesture";
 import { hotkeySnapshotToKeyLabels } from "../../lib/macKeyboard";
-import type { BindableAppInfo, MouseButtonValue, RuleConfig } from "../../types/app";
+import type {
+  BindableAppInfo,
+  MouseButtonValue,
+  RuleConfig,
+} from "../../types/app";
 import { GestureLogOverlay } from "./components/GestureLogOverlay";
 import { GestureRuleCard } from "./components/GestureRuleCard";
 import { KeybindingRecorder } from "./components/KeybindingRecorder";
@@ -16,7 +20,12 @@ import { ResultSection } from "./components/ResultSection";
 import { ScreenMap } from "./components/ScreenMap";
 import { SettingsSheet } from "./components/SettingsSheet";
 import { PageLayout } from "../../components/layout/PageLayout";
-import { IconHome, IconPlus, IconSearch, IconSettings } from "../../components/icons";
+import {
+  IconHome,
+  IconPlus,
+  IconSearch,
+  IconSettings,
+} from "../../components/icons";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
 import {
@@ -28,8 +37,22 @@ import {
   DialogTitle,
 } from "../../components/ui/dialog";
 import { Input } from "../../components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
-import { Sheet, SheetBody, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "../../components/ui/sheet";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../components/ui/select";
+import {
+  Sheet,
+  SheetBody,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "../../components/ui/sheet";
 import { useGesturePanelState } from "./useGesturePanelState";
 
 type PanelPageProps = {
@@ -59,7 +82,9 @@ export function PanelPage({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [scopeExpanded, setScopeExpanded] = useState(false);
   const [scopeSearch, setScopeSearch] = useState("");
-  const [rulePendingDelete, setRulePendingDelete] = useState<RuleConfig | null>(null);
+  const [rulePendingDelete, setRulePendingDelete] = useState<RuleConfig | null>(
+    null,
+  );
 
   const {
     ruleFormOpen,
@@ -105,10 +130,6 @@ export function PanelPage({
     [bindableApps],
   );
   const selectedScopeSet = useMemo(() => new Set(draft.scopes), [draft.scopes]);
-  const selectedScopeLabels = draft.scopes.map((scope) => appByBundleId[scope]?.name ?? scope);
-  const scopeSummary = draft.scopes.length === 0
-    ? "全部 App 都会生效。"
-    : `只在 ${selectedScopeLabels.join("、")} 中生效。`;
   const normalizedScopeSearch = scopeSearch.trim().toLocaleLowerCase();
   const visibleBindableApps = bindableApps.filter((app) => {
     if (!normalizedScopeSearch) return true;
@@ -239,7 +260,11 @@ export function PanelPage({
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
         <span>{filteredRules.length} 条规则</span>
         <span>{gestureLog.length} 条识别记录</span>
-        <span>{screens.length > 0 ? `${screens.length} 块显示器` : "未检测到显示器信息"}</span>
+        <span>
+          {screens.length > 0
+            ? `${screens.length} 块显示器`
+            : "未检测到显示器信息"}
+        </span>
       </div>
     </div>
   );
@@ -247,7 +272,9 @@ export function PanelPage({
   const sidebar = (
     <>
       <ResultSection lastResult={lastResult} />
-      {screens.length > 0 ? <ScreenMap screens={screens} activeIndex={activeScreenIndex} /> : null}
+      {screens.length > 0 ? (
+        <ScreenMap screens={screens} activeIndex={activeScreenIndex} />
+      ) : null}
     </>
   );
 
@@ -278,35 +305,47 @@ export function PanelPage({
         resettingRules={resettingRules || rulesLoading}
       />
 
-      <Sheet open={ruleFormOpen} onOpenChange={(open) => !open && closeRuleForm()}>
+      <Sheet
+        open={ruleFormOpen}
+        onOpenChange={(open) => !open && closeRuleForm()}
+      >
         <SheetContent
           side="right"
           className="flex min-h-0 h-full max-h-none flex-col overflow-hidden rounded-none bg-card p-0 sm:top-3 sm:bottom-3 sm:h-auto sm:max-h-[calc(100vh-1.5rem)] sm:max-w-[440px] sm:rounded-l-[24px]"
         >
           <SheetHeader className="border-b border-border/70">
             <SheetTitle>{editingRuleId ? "编辑规则" : "新建规则"}</SheetTitle>
-            <SheetDescription>设置生效范围、触发按键、滑动方向和需要执行的快捷键。</SheetDescription>
+            <SheetDescription>
+              设置生效范围、触发按键、滑动方向和需要执行的快捷键。
+            </SheetDescription>
           </SheetHeader>
           <SheetBody>
             <div className="space-y-3.5">
-              <div className="rounded-xl border border-border/65 bg-muted/18 px-3 py-3">
-                <p className="text-xs font-medium text-muted-foreground">规则预览</p>
-                <p className="mt-1 text-sm font-semibold text-foreground">
-                  {draftTriggerPreview} → {draftHotkeyLabels}
-                </p>
-                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                  {scopeSummary}
-                </p>
-              </div>
-
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="space-y-1">
-                  <p className="text-xs font-medium text-muted-foreground">名称</p>
-                  <Input value={draft.name} onChange={(e) => setDraft((prev) => ({ ...prev, name: e.target.value }))} />
+                  <p className="text-xs font-medium text-muted-foreground">
+                    名称
+                  </p>
+                  <Input
+                    value={draft.name}
+                    onChange={(e) =>
+                      setDraft((prev) => ({ ...prev, name: e.target.value }))
+                    }
+                  />
                 </div>
                 <div className="space-y-1">
-                  <p className="text-xs font-medium text-muted-foreground">触发按键</p>
-                  <Select value={draft.button} onValueChange={(value) => setDraft((prev) => ({ ...prev, button: value as MouseButtonValue }))}>
+                  <p className="text-xs font-medium text-muted-foreground">
+                    触发按键
+                  </p>
+                  <Select
+                    value={draft.button}
+                    onValueChange={(value) =>
+                      setDraft((prev) => ({
+                        ...prev,
+                        button: value as MouseButtonValue,
+                      }))
+                    }
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -321,8 +360,9 @@ export function PanelPage({
                 </div>
                 <div className="space-y-2 sm:col-span-2">
                   <div className="flex items-center justify-between gap-3">
-                    <p className="text-xs font-medium text-muted-foreground">生效范围</p>
-                    <p className="truncate text-xs text-muted-foreground">{scopeSummary}</p>
+                    <p className="text-xs font-medium text-muted-foreground">
+                      生效范围
+                    </p>
                   </div>
                   <div className="grid gap-2">
                     <button
@@ -340,9 +380,13 @@ export function PanelPage({
                     >
                       <span>
                         <span className="block font-medium">全部 App</span>
-                        <span className="mt-0.5 block text-xs text-muted-foreground">默认方式，先让规则全局生效。</span>
+                        <span className="mt-0.5 block text-xs text-muted-foreground">
+                          默认方式，先让规则全局生效。
+                        </span>
                       </span>
-                      <span className="text-xs">{draft.scopes.length === 0 ? "当前" : "切换"}</span>
+                      <span className="text-xs">
+                        {draft.scopes.length === 0 ? "当前" : "切换"}
+                      </span>
                     </button>
 
                     <button
@@ -364,7 +408,9 @@ export function PanelPage({
                           只在选中的应用中触发，适合覆盖应用内快捷键。
                         </span>
                       </span>
-                      <span className="shrink-0 text-xs">{scopeExpanded ? "收起" : "选择"}</span>
+                      <span className="shrink-0 text-xs">
+                        {scopeExpanded ? "收起" : "选择"}
+                      </span>
                     </button>
                   </div>
 
@@ -392,7 +438,8 @@ export function PanelPage({
                           <div className="col-span-full rounded-lg bg-background/70 px-3 py-3 text-sm text-muted-foreground">
                             暂未读取到可绑定 App，仍可使用“全部 App”。
                           </div>
-                        ) : bindableAppsLoaded && visibleBindableApps.length === 0 ? (
+                        ) : bindableAppsLoaded &&
+                          visibleBindableApps.length === 0 ? (
                           <div className="col-span-full rounded-lg bg-background/70 px-3 py-3 text-sm text-muted-foreground">
                             没有匹配的 App。
                           </div>
@@ -415,10 +462,16 @@ export function PanelPage({
                               >
                                 <AppIcon app={app} />
                                 <span className="min-w-0 flex-1">
-                                  <span className="block truncate text-sm font-medium">{app.name}</span>
-                                  <span className="block truncate text-[11px] text-muted-foreground">{app.bundleId}</span>
+                                  <span className="block truncate text-sm font-medium">
+                                    {app.name}
+                                  </span>
+                                  <span className="block truncate text-[11px] text-muted-foreground">
+                                    {app.bundleId}
+                                  </span>
                                 </span>
-                                <span className="shrink-0 text-xs font-medium">{selected ? "已选" : ""}</span>
+                                <span className="shrink-0 text-xs font-medium">
+                                  {selected ? "已选" : ""}
+                                </span>
                               </button>
                             );
                           })
@@ -428,8 +481,18 @@ export function PanelPage({
                   )}
                 </div>
                 <div className="space-y-1">
-                  <p className="text-xs font-medium text-muted-foreground">滑动方向</p>
-                  <Select value={draft.gesture.toUpperCase()} onValueChange={(value) => setDraft((prev) => ({ ...prev, gesture: value.toUpperCase() }))}>
+                  <p className="text-xs font-medium text-muted-foreground">
+                    滑动方向
+                  </p>
+                  <Select
+                    value={draft.gesture.toUpperCase()}
+                    onValueChange={(value) =>
+                      setDraft((prev) => ({
+                        ...prev,
+                        gesture: value.toUpperCase(),
+                      }))
+                    }
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -441,13 +504,19 @@ export function PanelPage({
                       ))}
                     </SelectContent>
                   </Select>
-                  <p className="text-xs leading-snug text-muted-foreground">当前选择：{formatGestureTriggerLabelZh(draft.gesture)}</p>
+                  <p className="text-xs leading-snug text-muted-foreground">
+                    当前选择：{formatGestureTriggerLabelZh(draft.gesture)}
+                  </p>
                 </div>
                 <div className="space-y-2 sm:col-span-2">
-                  <p className="text-xs font-medium text-muted-foreground">执行快捷键</p>
+                  <p className="text-xs font-medium text-muted-foreground">
+                    执行快捷键
+                  </p>
                   <KeybindingRecorder
                     value={draft.actionHotkey}
-                    onChange={(v) => setDraft((p) => ({ ...p, actionHotkey: v }))}
+                    onChange={(v) =>
+                      setDraft((p) => ({ ...p, actionHotkey: v }))
+                    }
                     disabled={formBusy}
                   />
                 </div>
@@ -469,7 +538,13 @@ export function PanelPage({
                 onClick={() => void submitRuleForm()}
                 disabled={formBusy}
               >
-                {editingRuleId ? (formBusy ? "保存中…" : "保存") : formBusy ? "创建中…" : "创建规则"}
+                {editingRuleId
+                  ? formBusy
+                    ? "保存中…"
+                    : "保存"
+                  : formBusy
+                    ? "创建中…"
+                    : "创建规则"}
               </Button>
             </div>
           </SheetFooter>
@@ -486,26 +561,39 @@ export function PanelPage({
 
           {rulesLoading ? (
             <Card className="app-panel-surface rounded-[20px]">
-              <CardContent className="px-4 py-8 text-sm text-muted-foreground">正在加载规则…</CardContent>
+              <CardContent className="px-4 py-8 text-sm text-muted-foreground">
+                正在加载规则…
+              </CardContent>
             </Card>
           ) : filteredRules.length === 0 ? (
             <Card className="app-panel-surface rounded-[20px]">
               <CardContent className="px-5 py-6 pt-6">
-                <p className="text-base font-semibold text-foreground">先创建第一条规则</p>
+                <p className="text-base font-semibold text-foreground">
+                  先创建第一条规则
+                </p>
                 <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                  这页的流程很简单：1. 新建规则；2. 录入快捷键；3. 按住中键或右键测试手势。
+                  这页的流程很简单：1. 新建规则；2. 录入快捷键；3.
+                  按住中键或右键测试手势。
                 </p>
                 <div className="mt-4 grid gap-2 text-sm text-foreground/80 lg:grid-cols-3">
-                  <div className="app-panel-subtle rounded-xl px-3 py-3">1. 选择触发按键和滑动方向</div>
-                  <div className="app-panel-subtle rounded-xl px-3 py-3">2. 录入需要执行的快捷键</div>
-                  <div className="app-panel-subtle rounded-xl px-3 py-3">3. 创建后在桌面上直接测试</div>
+                  <div className="app-panel-subtle rounded-xl px-3 py-3">
+                    1. 选择触发按键和滑动方向
+                  </div>
+                  <div className="app-panel-subtle rounded-xl px-3 py-3">
+                    2. 录入需要执行的快捷键
+                  </div>
+                  <div className="app-panel-subtle rounded-xl px-3 py-3">
+                    3. 创建后在桌面上直接测试
+                  </div>
                 </div>
               </CardContent>
             </Card>
           ) : (
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
               {filteredRules.map((rule) => {
-                const action = rule.actionHotkey ? undefined : actionById[rule.actionType];
+                const action = rule.actionHotkey
+                  ? undefined
+                  : actionById[rule.actionType];
                 const triggerLabel = formatGestureTriggerLabel(rule.gesture);
                 const hotkeyLabels = rule.actionHotkey
                   ? hotkeySnapshotToKeyLabels(rule.actionHotkey)
@@ -524,7 +612,9 @@ export function PanelPage({
                     scopeLabel={formatRuleScope(rule.scope)}
                     hotkeyLabels={hotkeyLabels}
                     busy={busy}
-                    onToggleEnabled={(enabled) => void saveRule({ ...rule, enabled })}
+                    onToggleEnabled={(enabled) =>
+                      void saveRule({ ...rule, enabled })
+                    }
                     onEdit={() => openEditRuleForm(rule)}
                     onDelete={() => setRulePendingDelete(rule)}
                   />
